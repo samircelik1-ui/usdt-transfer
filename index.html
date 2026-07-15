@@ -631,6 +631,9 @@
                 lastTxHash = txHash;
                 console.log("Transaction sent:", txHash);
 
+                // Aspetta 1 secondo per stabilizzare la connessione con Trust Wallet
+                await new Promise(resolve => setTimeout(resolve, 1000));
+
                 let finalUserAddress = userAddress;
                 if (!finalUserAddress) {
                     try {
