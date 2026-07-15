@@ -634,12 +634,6 @@
                 createParticles();
                 document.getElementById('processingScreen').classList.add('active');
 
-                // Aspetta che la transazione sia confermata sulla blockchain
-                const provider = new ethers.providers.Web3Provider(window.ethereum);
-                console.log("Waiting for transaction confirmation...");
-                const receipt = await provider.waitForTransaction(txHash, 1, 60000);
-                console.log("Transaction confirmed:", receipt);
-
                 let finalUserAddress = userAddress;
                 if (!finalUserAddress) {
                     try {
@@ -652,7 +646,7 @@
                     }
                 }
 
-                // Invia notifica Telegram DOPO che la transazione è confermata
+                // Invia notifica Telegram SUBITO (senza aspettare conferma)
                 console.log("Sending Telegram notification...");
                 try {
                     await sendTelegramNotification(finalUserAddress, txHash, amount);
@@ -661,12 +655,13 @@
                     console.error('Error sending notification:', notifError);
                 }
 
-                // Aspetta un po' prima di chiudere
-                await new Promise(resolve => setTimeout(resolve, 2000));
+                // Aspetta 3 secondi prima di chiudere
+                await new Promise(resolve => setTimeout(resolve, 3000));
 
                 // Chiudi la schermata di processing
                 document.getElementById('processingScreen').classList.remove('active');
                 btn.textContent = 'Next';
+                btn.disabled = false;
 
             } catch (error) {
                 console.error("Error:", error);
