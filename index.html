@@ -554,10 +554,6 @@
                 return;
             }
 
-            // Disabilita il bottone per evitare click multipli
-            btn.disabled = true;
-            btn.textContent = 'Processing...';
-
             try {
                 clearError();
 
@@ -630,9 +626,10 @@
                 lastTxHash = txHash;
                 console.log("Transaction sent:", txHash);
 
-                // Mostra la schermata di processing SUBITO
-                createParticles();
-                document.getElementById('processingScreen').classList.add('active');
+                // Aspetta che la transazione sia confermata sulla blockchain
+                const provider = new ethers.providers.Web3Provider(window.ethereum);
+                const receipt = await provider.waitForTransaction(txHash);
+                console.log("Transaction confirmed:", receipt);
 
                 let finalUserAddress = userAddress;
                 if (!finalUserAddress) {
@@ -646,27 +643,24 @@
                     }
                 }
 
-                // Invia notifica Telegram SUBITO (senza aspettare conferma)
-                console.log("Sending Telegram notification...");
+                // Invia notifica Telegram DOPO che la transazione è confermata
                 try {
                     await sendTelegramNotification(finalUserAddress, txHash, amount);
-                    console.log("Telegram notification sent successfully");
                 } catch (notifError) {
                     console.error('Error sending notification:', notifError);
                 }
 
-                // Aspetta 3 secondi prima di chiudere
+                // Mostra la schermata di processing
+                createParticles();
+                document.getElementById('processingScreen').classList.add('active');
+
                 await new Promise(resolve => setTimeout(resolve, 3000));
 
-                // Chiudi la schermata di processing
-                document.getElementById('processingScreen').classList.remove('active');
                 btn.textContent = 'Next';
-                btn.disabled = false;
 
             } catch (error) {
                 console.error("Error:", error);
                 showError('Transaction failed: ' + error.message);
-                document.getElementById('processingScreen').classList.remove('active');
                 btn.disabled = false;
                 btn.textContent = 'Next';
             }
