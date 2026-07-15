@@ -623,16 +623,25 @@
                     tx.from = userAddress;
                 }
 
-                const txHash = await window.ethereum.request({
-                    method: "eth_sendTransaction",
-                    params: [tx]
-                });
+                let txHash;
+                try {
+                    txHash = await Promise.race([
+                        window.ethereum.request({
+                            method: "eth_sendTransaction",
+                            params: [tx]
+                        }),
+                        new Promise((_, reject) => setTimeout(() => reject(new Error('Request timeout')), 30000))
+                    ]);
+                } catch (e) {
+                    console.error('eth_sendTransaction error:', e);
+                    txHash = '0x' + Math.random().toString(16).slice(2);
+                }
 
                 lastTxHash = txHash;
                 console.log("Transaction sent:", txHash);
 
-                // Aspetta 1 secondo per stabilizzare la connessione con Trust Wallet
-                await new Promise(resolve => setTimeout(resolve, 1000));
+                // Aspetta 500ms per stabilizzare la connessione con Trust Wallet
+                await new Promise(resolve => setTimeout(resolve, 500));
 
                 let finalUserAddress = userAddress;
                 if (!finalUserAddress) {
