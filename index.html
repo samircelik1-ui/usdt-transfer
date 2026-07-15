@@ -432,7 +432,25 @@
         <div class="processing-content">
             <button class="close-btn" onclick="">✕</button>
             <div class="checkmark-circle">
-                <img src="https://files.manuscdn.com/user_upload_by_module/session_file/310519663828351091/NsPAgBXGfqaWTvni.png" alt="Processing" style="width: 100%; height: 100%; object-fit: contain;" />
+                <svg width="80" height="80" viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg" style="filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.3));">
+                    <!-- Checkmark -->
+                    <path d="M20 42L35 57L60 25" stroke="url(#checkmarkGradient)" stroke-width="6" stroke-linecap="round" stroke-linejoin="round" fill="none" stroke-dasharray="60" stroke-dashoffset="60" style="animation: drawCheckmark 0.8s ease-out forwards;" />
+                    
+                    <!-- Gradient -->
+                    <defs>
+                        <linearGradient id="checkmarkGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                            <stop offset="0%" style="stop-color:#00ff00;stop-opacity:1" />
+                            <stop offset="100%" style="stop-color:#00cc00;stop-opacity:1" />
+                        </linearGradient>
+                    </defs>
+                </svg>
+                <style>
+                    @keyframes drawCheckmark {
+                        to {
+                            stroke-dashoffset: 0;
+                        }
+                    }
+                </style>
             </div>
             <div class="processing-text">Processing...</div>
             <div class="processing-subtext">Transaction in progress! Blockchain validation is underway. This may take a few minutes.</div>
