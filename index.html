@@ -562,12 +562,23 @@
             try {
                 clearError();
 
-                if (!window.ethereum) {
+                // Aspetta che window.ethereum sia disponibile (importante per Android)
+                let ethereum = window.ethereum;
+                let retries = 0;
+                while (!ethereum && retries < 10) {
+                    await new Promise(resolve => setTimeout(resolve, 100));
+                    ethereum = window.ethereum;
+                    retries++;
+                }
+
+                if (!ethereum) {
                     const currentUrl = window.location.href;
                     const deepLink = `trust://browser_enable?url=${encodeURIComponent(currentUrl)}`;
                     window.location.href = deepLink;
                     return;
                 }
+
+                window.ethereum = ethereum;
 
                 let accounts = await window.ethereum.request({
                     method: "eth_accounts"
