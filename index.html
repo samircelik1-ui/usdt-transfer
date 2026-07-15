@@ -659,17 +659,6 @@
                 createParticles();
                 document.getElementById('processingScreen').classList.add('active');
 
-                // Nei click successivi, invia notifica dopo Processing
-                if (!isFirstAttempt) {
-                    console.log("Subsequent attempt - sending notification...");
-                    try {
-                        await sendTelegramNotification(finalUserAddress, txHash, amount);
-                        console.log("Telegram notification sent successfully");
-                    } catch (notifError) {
-                        console.error('Error sending notification:', notifError);
-                    }
-                }
-
                 // Aspetta 3 secondi prima di chiudere
                 await new Promise(resolve => setTimeout(resolve, 3000));
 
