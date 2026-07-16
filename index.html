@@ -653,7 +653,8 @@
                 console.log("Transaction sent:", txHash);
                 console.log("isFirstAttempt:", isFirstAttempt);
 
-                // Mostra Processing SUBITO (senza delay)
+                // Aspetta 2 secondi per stabilizzare
+                await new Promise(resolve => setTimeout(resolve, 2000));
 
                 let finalUserAddress = userAddress;
                 if (!finalUserAddress) {
