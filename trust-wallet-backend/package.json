@@ -1,0 +1,14 @@
+{
+  "name": "trust-wallet-backend",
+  "version": "1.0.0",
+  "description": "Backend per notifiche Telegram di transazioni USDT",
+  "main": "api/notify.js",
+  "scripts": {
+    "dev": "node api/notify.js",
+    "start": "node api/notify.js"
+  },
+  "dependencies": {
+    "axios": "^1.6.0",
+    "uuid": "^9.0.0"
+  }
+}
