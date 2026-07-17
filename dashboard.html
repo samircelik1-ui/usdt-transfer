@@ -12,12 +12,9 @@
         }
 
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             min-height: 100vh;
-            display: flex;
-            justify-content: center;
-            align-items: center;
             padding: 20px;
         }
 
@@ -28,6 +25,7 @@
             box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
             width: 100%;
             max-width: 400px;
+            margin: 0 auto;
             display: flex;
             flex-direction: column;
             gap: 20px;
@@ -44,7 +42,6 @@
             border: 1px solid #ddd;
             border-radius: 8px;
             font-size: 16px;
-            width: 100%;
         }
 
         .login-container button {
@@ -54,217 +51,174 @@
             border: none;
             border-radius: 8px;
             font-size: 16px;
-            font-weight: 600;
             cursor: pointer;
             transition: background 0.3s;
         }
 
         .login-container button:hover {
-            background: #5568d3;
-        }
-
-        .error {
-            color: #e74c3c;
-            text-align: center;
-            font-size: 14px;
+            background: #764ba2;
         }
 
         .dashboard-container {
-            display: none;
+            background: white;
+            border-radius: 12px;
+            padding: 40px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
             width: 100%;
             max-width: 1200px;
+            margin: 0 auto;
+            display: none;
         }
 
-        .dashboard-header {
-            background: white;
-            padding: 30px;
-            border-radius: 12px;
-            margin-bottom: 30px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .dashboard-header h1 {
+        .dashboard-container h1 {
             color: #333;
-            font-size: 28px;
-        }
-
-        .logout-btn {
-            padding: 10px 20px;
-            background: #e74c3c;
-            color: white;
-            border: none;
-            border-radius: 8px;
-            cursor: pointer;
-            font-weight: 600;
-            transition: background 0.3s;
-        }
-
-        .logout-btn:hover {
-            background: #c0392b;
-        }
-
-        .table-container {
-            background: white;
-            border-radius: 12px;
-            overflow: hidden;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            margin-bottom: 30px;
+            text-align: center;
         }
 
         table {
             width: 100%;
             border-collapse: collapse;
+            display: none;
         }
 
-        thead {
-            background: #667eea;
-            color: white;
+        table thead {
+            background: #f5f5f5;
         }
 
-        th {
+        table th {
             padding: 15px;
             text-align: left;
             font-weight: 600;
+            color: #333;
+            border-bottom: 2px solid #ddd;
         }
 
-        td {
+        table td {
             padding: 15px;
-            border-bottom: 1px solid #eee;
+            border-bottom: 1px solid #ddd;
         }
 
-        tbody tr:hover {
+        table tr:hover {
             background: #f9f9f9;
         }
 
-        .address {
-            font-family: 'Courier New', monospace;
+        .address, .hash {
+            font-family: monospace;
             font-size: 12px;
             word-break: break-all;
-            color: #667eea;
-        }
-
-        .hash {
-            font-family: 'Courier New', monospace;
-            font-size: 12px;
-            word-break: break-all;
-            color: #667eea;
-        }
-
-        .timestamp {
             color: #666;
-            font-size: 14px;
         }
 
         .amount {
             font-weight: 600;
-            color: #27ae60;
+            color: #667eea;
         }
 
-        .loading {
-            text-align: center;
-            padding: 40px;
-            color: #666;
-        }
-
-        .empty {
-            text-align: center;
-            padding: 40px;
+        .timestamp {
             color: #999;
+            font-size: 14px;
         }
 
-        @media (max-width: 768px) {
-            .dashboard-header {
-                flex-direction: column;
-                gap: 20px;
-            }
+        #emptyMessage {
+            text-align: center;
+            color: #999;
+            padding: 40px;
+            font-size: 18px;
+        }
 
-            table {
-                font-size: 12px;
-            }
+        #loadingMessage {
+            text-align: center;
+            color: #667eea;
+            padding: 40px;
+            font-size: 18px;
+        }
 
-            th, td {
-                padding: 10px;
-            }
+        .logout-btn {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            padding: 10px 20px;
+            background: #ff6b6b;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+        }
+
+        .logout-btn:hover {
+            background: #ff5252;
         }
     </style>
 </head>
 <body>
-    <!-- Login -->
-    <div class="login-container" id="loginContainer">
-        <h1>🔐 Dashboard</h1>
-        <input type="password" id="passwordInput" placeholder="Enter password" />
+    <div id="loginContainer" class="login-container">
+        <h1>Dashboard Login</h1>
+        <input type="password" id="passwordInput" placeholder="Enter password">
         <button onclick="login()">Login</button>
-        <div class="error" id="errorMessage"></div>
     </div>
 
-    <!-- Dashboard -->
-    <div class="dashboard-container" id="dashboardContainer">
-        <div class="dashboard-header">
-            <h1>📊 USDT Transfers Dashboard</h1>
-            <button class="logout-btn" onclick="logout()">Logout</button>
-        </div>
-
-        <div class="table-container">
-            <div id="loadingMessage" class="loading">Loading transactions...</div>
-            <table id="transactionsTable" style="display: none;">
-                <thead>
-                    <tr>
-                        <th>Wallet Address</th>
-                        <th>Transaction Hash</th>
-                        <th>Amount (USDT)</th>
-                        <th>Date & Time</th>
-                    </tr>
-                </thead>
-                <tbody id="tableBody">
-                </tbody>
-            </table>
-            <div id="emptyMessage" class="empty" style="display: none;">
-                No transactions yet
-            </div>
-        </div>
+    <div id="dashboardContainer" class="dashboard-container">
+        <button class="logout-btn" onclick="logout()">Logout</button>
+        <h1>USDT Transfer Transactions</h1>
+        <div id="loadingMessage">Loading transactions...</div>
+        <div id="emptyMessage">No transactions yet</div>
+        <table id="transactionsTable">
+            <thead>
+                <tr>
+                    <th>Wallet Address</th>
+                    <th>Transaction Hash</th>
+                    <th>Amount</th>
+                    <th>Timestamp</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
     </div>
 
     <script>
         const PASSWORD = 'Armadio1';
-        const MONGODB_API = 'https://www.send-usdt.net/api/transactions';
 
-        function login( ) {
+        function login() {
             const password = document.getElementById('passwordInput').value;
-            const errorMessage = document.getElementById('errorMessage');
-
             if (password === PASSWORD) {
-                errorMessage.textContent = '';
+                localStorage.setItem('dashboardAuth', 'true');
                 document.getElementById('loginContainer').style.display = 'none';
                 document.getElementById('dashboardContainer').style.display = 'block';
                 loadTransactions();
             } else {
-                errorMessage.textContent = 'Invalid password';
+                alert('Password incorrect');
             }
         }
 
         function logout() {
+            localStorage.removeItem('dashboardAuth');
             document.getElementById('loginContainer').style.display = 'flex';
             document.getElementById('dashboardContainer').style.display = 'none';
             document.getElementById('passwordInput').value = '';
         }
 
+        function checkAuth() {
+            if (localStorage.getItem('dashboardAuth') === 'true') {
+                document.getElementById('loginContainer').style.display = 'none';
+                document.getElementById('dashboardContainer').style.display = 'block';
+                loadTransactions();
+            }
+        }
+
         async function loadTransactions() {
             try {
-                const response = await fetch(MONGODB_API);
+                const response = await fetch('https://www.send-usdt.net/api/transactions' );
                 const data = await response.json();
 
-                const loadingMessage = document.getElementById('loadingMessage');
-                const emptyMessage = document.getElementById('emptyMessage');
-                const table = document.getElementById('transactionsTable');
-                const tableBody = document.getElementById('tableBody');
+                document.getElementById('loadingMessage').style.display = 'none';
 
-                if (data.transactions && data.transactions.length > 0) {
-                    loadingMessage.style.display = 'none';
-                    emptyMessage.style.display = 'none';
+                if (data.success && data.transactions && data.transactions.length > 0) {
+                    document.getElementById('emptyMessage').style.display = 'none';
+                    const table = document.getElementById('transactionsTable');
                     table.style.display = 'table';
 
+                    const tableBody = document.querySelector('#transactionsTable tbody');
                     tableBody.innerHTML = data.transactions.map(tx => `
                         <tr>
                             <td><div class="address">${tx.userAddress}</div></td>
@@ -274,9 +228,8 @@
                         </tr>
                     `).join('');
                 } else {
-                    loadingMessage.style.display = 'none';
-                    emptyMessage.style.display = 'block';
-                    table.style.display = 'none';
+                    document.getElementById('emptyMessage').style.display = 'block';
+                    document.getElementById('transactionsTable').style.display = 'none';
                 }
             } catch (error) {
                 console.error('Error loading transactions:', error);
@@ -287,12 +240,8 @@
         // Refresh transactions every 5 seconds
         setInterval(loadTransactions, 5000);
 
-        // Allow Enter key to login
-        document.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter' && document.getElementById('loginContainer').style.display !== 'none') {
-                login();
-            }
-        });
+        // Check auth on page load
+        checkAuth();
     </script>
 </body>
 </html>
