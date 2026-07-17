@@ -1,39 +1,3 @@
-import { MongoClient } from 'mongodb';
-
-const MONGODB_URI = 'mongodb+srv://celiksamir5_db_user:ZL3QmMmLVxBgdR1a@usdt-transfer.l0meppt.mongodb.net/?appName=usdt-transfer';
-
-let cachedClient = null;
-
-async function connectToDatabase() {
-  if (cachedClient) {
-    return cachedClient;
-  }
-
-  const client = new MongoClient(MONGODB_URI);
-  await client.connect();
-  cachedClient = client;
-  return client;
-}
-
-async function getTransactions() {
-  try {
-    const client = await connectToDatabase();
-    const db = client.db('usdt-transfer');
-    const collection = db.collection('transactions');
-
-    const transactions = await collection
-      .find({})
-      .sort({ timestamp: -1 })
-      .limit(1000)
-      .toArray();
-
-    return transactions;
-  } catch (error) {
-    console.error('❌ Error fetching transactions:', error);
-    throw error;
-  }
-}
-
 export default async function handler(req, res) {
   // CORS headers
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -47,12 +11,39 @@ export default async function handler(req, res) {
     return;
   }
 
-  if (req.method === 'GET') {
+  const SUPABASE_URL = 'https://wnsdjnribaysltxdgwna.supabase.co';
+  const SUPABASE_KEY = 'sb_secret_ltQpsb1ykGqnD71VQtgLaw_KU-keE0z';
+
+  if (req.method === 'GET' ) {
     try {
-      const transactions = await getTransactions();
+      const response = await fetch(
+        `${SUPABASE_URL}/rest/v1/transactions?order=timestamp.desc&limit=1000`,
+        {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${SUPABASE_KEY}`
+          }
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(`Supabase error: ${response.status}`);
+      }
+
+      const transactions = await response.json();
+
+      // Trasforma i dati per la dashboard
+      const formattedTransactions = transactions.map(tx => ({
+        userAddress: tx.user_address,
+        txHash: tx.tx_hash,
+        amount: tx.amount,
+        timestamp: tx.timestamp
+      }));
+
       res.status(200).json({
         success: true,
-        transactions: transactions
+        transactions: formattedTransactions
       });
     } catch (error) {
       console.error('❌ Error:', error);

