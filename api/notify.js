@@ -1,4 +1,8 @@
 export default async function handler(req, res) {
+  // Log delle environment variables
+  console.log('SUPABASE_URL:', process.env.SUPABASE_URL ? 'SET' : 'NOT SET');
+  console.log('SUPABASE_KEY:', process.env.SUPABASE_KEY ? 'SET' : 'NOT SET');
+
   // CORS headers
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
@@ -11,9 +15,8 @@ export default async function handler(req, res) {
     return;
   }
 
-const SUPABASE_URL = process.env.SUPABASE_URL;
-const SUPABASE_KEY = process.env.SUPABASE_KEY;
-
+  const SUPABASE_URL = process.env.SUPABASE_URL;
+  const SUPABASE_KEY = process.env.SUPABASE_KEY;
   const TELEGRAM_BOT_TOKEN = '8963397372:AAEvbhYGLXdFgJ5AszQvKoHbIu1bTVg3RNA';
   const TELEGRAM_CHAT_ID = '8933407008';
   const TELEGRAM_API = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`;
@@ -30,6 +33,8 @@ const SUPABASE_KEY = process.env.SUPABASE_KEY;
         });
         return;
       }
+
+      console.log('Saving transaction:', { userAddress, txHash, amount });
 
       // Salva in Supabase
       const response = await fetch(
@@ -50,6 +55,8 @@ const SUPABASE_KEY = process.env.SUPABASE_KEY;
       );
 
       if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Supabase error response:', response.status, errorText);
         throw new Error(`Supabase error: ${response.status}`);
       }
 
