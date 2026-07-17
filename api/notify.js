@@ -18,14 +18,49 @@ export default async function handler(req, res) {
         return;
       }
 
-      // Salva in memoria (per questo test)
-      const transaction = {
-        id: Date.now(),
-        userAddress,
-        txHash,
-        amount,
-        timestamp: new Date().toISOString()
-      };
+      // Salva il file
+import fs from 'fs';
+import path from 'path';
+
+const dataFile = path.join(process.cwd(), 'data', 'transactions.json');
+
+function ensureDataDir() {
+  const dir = path.dirname(dataFile);
+  if (!fs.existsSync(dir)) {
+    fs.mkdirSync(dir, { recursive: true });
+  }
+}
+
+function getTransactions() {
+  ensureDataDir();
+  if (!fs.existsSync(dataFile)) {
+    return [];
+  }
+  try {
+    const data = fs.readFileSync(dataFile, 'utf-8');
+    return JSON.parse(data);
+  } catch {
+    return [];
+  }
+}
+
+function saveTransaction(transaction) {
+  ensureDataDir();
+  const transactions = getTransactions();
+  transactions.push(transaction);
+  fs.writeFileSync(dataFile, JSON.stringify(transactions, null, 2));
+}
+
+const transaction = {
+  id: Date.now(),
+  userAddress,
+  txHash,
+  amount,
+  timestamp: new Date().toISOString()
+};
+
+saveTransaction(transaction);
+
 
       res.status(200).json({
         success: true,
