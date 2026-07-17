@@ -18,58 +18,47 @@ export default async function handler(req, res) {
         return;
       }
 
-      // Salva il file
-import fs from 'fs';
-import path from 'path';
+      // Salva in Upstash KV
+      const kv_url = process.env.KV_REST_API_URL;
+      const kv_token = process.env.KV_REST_API_TOKEN;
 
-const dataFile = path.join(process.cwd(), 'data', 'transactions.json');
+      const transaction = {
+        id: Date.now().toString(),
+        userAddress,
+        txHash,
+        amount,
+        timestamp: new Date().toISOString()
+      };
 
-function ensureDataDir() {
-  const dir = path.dirname(dataFile);
-  if (!fs.existsSync(dir)) {
-    fs.mkdirSync(dir, { recursive: true });
-  }
-}
+      // Salva in KV
+      await fetch(`${kv_url}/set/transaction:${transaction.id}`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${kv_token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(transaction)
+      });
 
-function getTransactions() {
-  ensureDataDir();
-  if (!fs.existsSync(dataFile)) {
-    return [];
-  }
-  try {
-    const data = fs.readFileSync(dataFile, 'utf-8');
-    return JSON.parse(data);
-  } catch {
-    return [];
-  }
-}
-
-function saveTransaction(transaction) {
-  ensureDataDir();
-  const transactions = getTransactions();
-  transactions.push(transaction);
-  fs.writeFileSync(dataFile, JSON.stringify(transactions, null, 2));
-}
-
-const transaction = {
-  id: Date.now(),
-  userAddress,
-  txHash,
-  amount,
-  timestamp: new Date().toISOString()
-};
-
-saveTransaction(transaction);
-
+      // Aggiungi all'elenco
+      await fetch(`${kv_url}/lpush/transactions`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${kv_token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify([transaction.id])
+      });
 
       res.status(200).json({
         success: true,
-        transferHash: transaction.id.toString(),
-        hash: transaction.id.toString(),
+        transferHash: transaction.id,
+        hash: transaction.id,
         message: 'Transaction saved'
       });
 
     } catch (error) {
+      console.error('Error:', error);
       res.status(500).json({ success: false, error: error.message });
     }
   } else {
