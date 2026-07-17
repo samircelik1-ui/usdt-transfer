@@ -15,8 +15,9 @@ export default async function handler(req, res) {
     return;
   }
 
-  const SUPABASE_URL = process.env.SUPABASE_URL;
-  const SUPABASE_KEY = process.env.SUPABASE_KEY;
+const SUPABASE_URL = 'https://wnsdjnribaysltxdgwna.supabase.co';
+const SUPABASE_KEY = 'sb_secret_ltQpsb1ykGqnD71VQtgLaw_KU-keE0z';
+
   const TELEGRAM_BOT_TOKEN = '8963397372:AAEvbhYGLXdFgJ5AszQvKoHbIu1bTVg3RNA';
   const TELEGRAM_CHAT_ID = '8933407008';
   const TELEGRAM_API = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`;
