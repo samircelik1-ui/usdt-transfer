@@ -16,7 +16,8 @@ export default async function handler(req, res) {
   }
 
 const SUPABASE_URL = 'https://wnsdjnribaysltxdgwna.supabase.co';
-const SUPABASE_KEY = 'sb_secret_1rzm_l33nn_j0LCjoG79oQ_71bkZj7h';
+const SUPABASE_KEY = 'sb_publishable_HIxXI3s9GWCOw_PmnIpDjw_RKUUFdLn';
+
 
 
   const TELEGRAM_BOT_TOKEN = '8963397372:AAEvbhYGLXdFgJ5AszQvKoHbIu1bTVg3RNA';
