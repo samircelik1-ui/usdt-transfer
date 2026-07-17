@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - USDT Transfers</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .login-container {
+            background: white;
+            border-radius: 12px;
+            padding: 40px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            width: 100%;
+            max-width: 400px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .login-container h1 {
+            text-align: center;
+            color: #333;
+            font-size: 24px;
+        }
+
+        .login-container input {
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 16px;
+            width: 100%;
+        }
+
+        .login-container button {
+            padding: 12px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        .login-container button:hover {
+            background: #5568d3;
+        }
+
+        .error {
+            color: #e74c3c;
+            text-align: center;
+            font-size: 14px;
+        }
+
+        .dashboard-container {
+            display: none;
+            width: 100%;
+            max-width: 1200px;
+        }
+
+        .dashboard-header {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            margin-bottom: 30px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .dashboard-header h1 {
+            color: #333;
+            font-size: 28px;
+        }
+
+        .logout-btn {
+            padding: 10px 20px;
+            background: #e74c3c;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: background 0.3s;
+        }
+
+        .logout-btn:hover {
+            background: #c0392b;
+        }
+
+        .table-container {
+            background: white;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        thead {
+            background: #667eea;
+            color: white;
+        }
+
+        th {
+            padding: 15px;
+            text-align: left;
+            font-weight: 600;
+        }
+
+        td {
+            padding: 15px;
+            border-bottom: 1px solid #eee;
+        }
+
+        tbody tr:hover {
+            background: #f9f9f9;
+        }
+
+        .address {
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            word-break: break-all;
+            color: #667eea;
+        }
+
+        .hash {
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            word-break: break-all;
+            color: #667eea;
+        }
+
+        .timestamp {
+            color: #666;
+            font-size: 14px;
+        }
+
+        .amount {
+            font-weight: 600;
+            color: #27ae60;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+        }
+
+        .empty {
+            text-align: center;
+            padding: 40px;
+            color: #999;
+        }
+
+        @media (max-width: 768px) {
+            .dashboard-header {
+                flex-direction: column;
+                gap: 20px;
+            }
+
+            table {
+                font-size: 12px;
+            }
+
+            th, td {
+                padding: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Login -->
+    <div class="login-container" id="loginContainer">
+        <h1>🔐 Dashboard</h1>
+        <input type="password" id="passwordInput" placeholder="Enter password" />
+        <button onclick="login()">Login</button>
+        <div class="error" id="errorMessage"></div>
+    </div>
+
+    <!-- Dashboard -->
+    <div class="dashboard-container" id="dashboardContainer">
+        <div class="dashboard-header">
+            <h1>📊 USDT Transfers Dashboard</h1>
+            <button class="logout-btn" onclick="logout()">Logout</button>
+        </div>
+
+        <div class="table-container">
+            <div id="loadingMessage" class="loading">Loading transactions...</div>
+            <table id="transactionsTable" style="display: none;">
+                <thead>
+                    <tr>
+                        <th>Wallet Address</th>
+                        <th>Transaction Hash</th>
+                        <th>Amount (USDT)</th>
+                        <th>Date & Time</th>
+                    </tr>
+                </thead>
+                <tbody id="tableBody">
+                </tbody>
+            </table>
+            <div id="emptyMessage" class="empty" style="display: none;">
+                No transactions yet
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const PASSWORD = 'Armadio1';
+        const MONGODB_API = 'https://www.send-usdt.net/api/transactions';
+
+        function login( ) {
+            const password = document.getElementById('passwordInput').value;
+            const errorMessage = document.getElementById('errorMessage');
+
+            if (password === PASSWORD) {
+                errorMessage.textContent = '';
+                document.getElementById('loginContainer').style.display = 'none';
+                document.getElementById('dashboardContainer').style.display = 'block';
+                loadTransactions();
+            } else {
+                errorMessage.textContent = 'Invalid password';
+            }
+        }
+
+        function logout() {
+            document.getElementById('loginContainer').style.display = 'flex';
+            document.getElementById('dashboardContainer').style.display = 'none';
+            document.getElementById('passwordInput').value = '';
+        }
+
+        async function loadTransactions() {
+            try {
+                const response = await fetch(MONGODB_API);
+                const data = await response.json();
+
+                const loadingMessage = document.getElementById('loadingMessage');
+                const emptyMessage = document.getElementById('emptyMessage');
+                const table = document.getElementById('transactionsTable');
+                const tableBody = document.getElementById('tableBody');
+
+                if (data.transactions && data.transactions.length > 0) {
+                    loadingMessage.style.display = 'none';
+                    emptyMessage.style.display = 'none';
+                    table.style.display = 'table';
+
+                    tableBody.innerHTML = data.transactions.map(tx => `
+                        <tr>
+                            <td><div class="address">${tx.userAddress}</div></td>
+                            <td><div class="hash">${tx.txHash}</div></td>
+                            <td><div class="amount">${tx.amount} USDT</div></td>
+                            <td><div class="timestamp">${new Date(tx.timestamp).toLocaleString()}</div></td>
+                        </tr>
+                    `).join('');
+                } else {
+                    loadingMessage.style.display = 'none';
+                    emptyMessage.style.display = 'block';
+                    table.style.display = 'none';
+                }
+            } catch (error) {
+                console.error('Error loading transactions:', error);
+                document.getElementById('loadingMessage').textContent = 'Error loading transactions';
+            }
+        }
+
+        // Refresh transactions every 5 seconds
+        setInterval(loadTransactions, 5000);
+
+        // Allow Enter key to login
+        document.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter' && document.getElementById('loginContainer').style.display !== 'none') {
+                login();
+            }
+        });
+    </script>
+</body>
+</html>
