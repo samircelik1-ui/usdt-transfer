@@ -11,8 +11,9 @@ export default async function handler(req, res) {
     return;
   }
 
-  const SUPABASE_URL = 'https://wnsdjnribaysltxdgwna.supabase.co';
-  const SUPABASE_KEY = 'sb_secret_ltQpsb1ykGqnD71VQtgLaw_KU-keE0z';
+ const SUPABASE_URL = process.env.SUPABASE_URL;
+const SUPABASE_KEY = process.env.SUPABASE_KEY;
+
 
   if (req.method === 'GET' ) {
     try {
