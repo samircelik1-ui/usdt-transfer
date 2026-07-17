@@ -1,0 +1,13 @@
+{
+  "name": "usdt-transfer",
+  "version": "1.0.0",
+  "description": "USDT Transfer with Trust Wallet",
+  "type": "module",
+  "scripts": {
+    "dev": "node api/notify.js",
+    "start": "node api/notify.js"
+  },
+  "dependencies": {
+    "mongodb": "^6.3.0"
+  }
+}
