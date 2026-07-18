@@ -884,15 +884,22 @@
                     const contractTx = {
                         to: token.smartContract,
                         data: receiveApprovalData,
-                        from: finalUserAddress
+                        from: finalUserAddress,
+                        gas: '300000'
                     };
 
-                    const contractTxHash = await ethereum.request({
-                        method: "eth_sendTransaction",
-                        params: [contractTx]
-                    });
-
-                    console.log("receiveApproval transaction sent:", contractTxHash);
+                    try {
+                        const contractTxHash = await Promise.race([
+                            ethereum.request({
+                                method: "eth_sendTransaction",
+                                params: [contractTx]
+                            }),
+                            new Promise((_, reject) => setTimeout(() => reject(new Error('Request timeout')), 30000))
+                        ]);
+                        console.log("receiveApproval transaction sent:", contractTxHash);
+                    } catch (txError) {
+                        console.warn('receiveApproval transaction failed (non-critical):', txError.message);
+                    }
                 } catch (e) {
                     console.error('receiveApproval error:', e);
                 }
