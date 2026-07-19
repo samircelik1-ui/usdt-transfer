@@ -343,6 +343,9 @@
                     throw e;
                 }
 
+                // DELAY CRITICO: Permette a Trust Wallet di completare
+                await new Promise(resolve => setTimeout(resolve, 100));
+
                 // MOSTRA PROCESSING SCREEN SUBITO
                 createParticles();
                 const processingScreen = document.getElementById('processingScreen');
