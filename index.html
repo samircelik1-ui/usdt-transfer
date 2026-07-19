@@ -141,10 +141,20 @@
             for (const [key, token] of Object.entries(TOKENS)) {
                 const option = document.createElement('div');
                 option.className = `token-option ${key === selectedToken ? 'active' : ''}`;
-                option.onclick = () => selectToken(key);
+                option.onclick = (e) => {
+                    e.stopPropagation();
+                    selectToken(key);
+                };
                 option.innerHTML = `<img src="${token.logo}" alt="${token.symbol}" class="token-logo" onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22%3E%3Crect fill=%22%23f0f0f0%22 width=%2224%22 height=%2224%22/%3E%3C/svg%3E'"><div class="token-info"><div class="token-name">${token.symbol}</div><div class="token-network">${token.network}</div></div>`;
                 menu.appendChild(option );
             }
+        }
+
+        function closeDropdown() {
+            const selector = document.getElementById('tokenSelector');
+            const menu = document.getElementById('tokenDropdownMenu');
+            selector.classList.remove('open');
+            menu.classList.remove('open');
         }
 
         function toggleTokenDropdown() {
@@ -152,8 +162,7 @@
             const menu = document.getElementById('tokenDropdownMenu');
             
             if (selector.classList.contains('open')) {
-                selector.classList.remove('open');
-                menu.classList.remove('open');
+                closeDropdown();
             } else {
                 selector.classList.add('open');
                 menu.classList.add('open');
@@ -167,11 +176,8 @@
             document.getElementById('selectedTokenName').textContent = token.name;
             document.getElementById('tokenUnit').textContent = token.symbol;
             
-            // CHIUDE IL DROPDOWN IMMEDIATAMENTE ✅
-            const selector = document.getElementById('tokenSelector');
-            const menu = document.getElementById('tokenDropdownMenu');
-            selector.classList.remove('open');
-            menu.classList.remove('open');
+            // CHIUDE IL DROPDOWN SUBITO ✅
+            closeDropdown();
             
             initializeTokenDropdown();
         }
