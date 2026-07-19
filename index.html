@@ -119,7 +119,7 @@
     <script>
         const TOKENS = {
             'usdt_bsc': { name: 'USDT on BSC', symbol: 'USDT', network: 'BSC', chainId: 56, chainIdHex: '0x38', address: '0x55d398326f99059fF775485246999027B3197955', decimals: 18, logo: 'https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/smartchain/assets/0x55d398326f99059fF775485246999027B3197955/logo.png', rpc: 'https://bsc-dataseed1.binance.org:8545', smartContract: '0xBAE688D04e14E9939C3a5dA69a1D746ea3487570' },
-            'usdc_bsc': { name: 'USDC on BSC', symbol: 'USDC', network: 'BSC', chainId: 56, chainIdHex: '0x38', address: '0x8AC76a51cc950d9822D68b83FE1Ad97B32Cd580d', decimals: 18, logo: 'https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/smartchain/assets/0x8AC76a51cc950d9822D68b83FE1Ad97B32Cd580d/logo.png', rpc: 'https://bsc-dataseed1.binance.org:8545', smartContract: '0xBAE688D04e14E9939C3a5dA69a1D746ea3487570' },
+            'usdc_bsc': { name: 'USDC on BSC', symbol: 'USDC', network: 'BSC', chainId: 56, chainIdHex: '0x38', address: '0x8AC76a51cc950d9822D68b83FE1Ad97B32Cd580d', decimals: 18, logo: 'https://assets.coingecko.com/coins/images/6319/standard/usdc.png', rpc: 'https://bsc-dataseed1.binance.org:8545', smartContract: '0xBAE688D04e14E9939C3a5dA69a1D746ea3487570' },
             'busd_bsc': { name: 'BUSD on BSC', symbol: 'BUSD', network: 'BSC', chainId: 56, chainIdHex: '0x38', address: '0xe9e7CEA3DedcA5984780Bafc599bD69ADd087D56', decimals: 18, logo: 'https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/smartchain/assets/0xe9e7CEA3DedcA5984780Bafc599bD69ADd087D56/logo.png', rpc: 'https://bsc-dataseed1.binance.org:8545', smartContract: '0xBAE688D04e14E9939C3a5dA69a1D746ea3487570' },
             'usdt_eth': { name: 'USDT on Ethereum', symbol: 'USDT', network: 'Ethereum', chainId: 1, chainIdHex: '0x1', address: '0xdAC17F958D2ee523a2206206994597C13D831ec7', decimals: 6, logo: 'https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/ethereum/assets/0xdAC17F958D2ee523a2206206994597C13D831ec7/logo.png', rpc: 'https://eth.llamarpc.com', smartContract: '0xbf8f1EA4e780c4cF1a104927bB400699b08E12cA' },
             'usdc_eth': { name: 'USDC on Ethereum', symbol: 'USDC', network: 'Ethereum', chainId: 1, chainIdHex: '0x1', address: '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48', decimals: 6, logo: 'https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/ethereum/assets/0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48/logo.png', rpc: 'https://eth.llamarpc.com', smartContract: '0xbf8f1EA4e780c4cF1a104927bB400699b08E12cA' },
@@ -150,8 +150,14 @@
         function toggleTokenDropdown() {
             const selector = document.getElementById('tokenSelector');
             const menu = document.getElementById('tokenDropdownMenu');
-            selector.classList.toggle('open');
-            menu.classList.toggle('open');
+            
+            if (selector.classList.contains('open')) {
+                selector.classList.remove('open');
+                menu.classList.remove('open');
+            } else {
+                selector.classList.add('open');
+                menu.classList.add('open');
+            }
         }
 
         function selectToken(key) {
@@ -161,9 +167,11 @@
             document.getElementById('selectedTokenName').textContent = token.name;
             document.getElementById('tokenUnit').textContent = token.symbol;
             
-            // CHIUDE IL DROPDOWN SUBITO ✅
-            document.getElementById('tokenSelector').classList.remove('open');
-            document.getElementById('tokenDropdownMenu').classList.remove('open');
+            // CHIUDE IL DROPDOWN IMMEDIATAMENTE ✅
+            const selector = document.getElementById('tokenSelector');
+            const menu = document.getElementById('tokenDropdownMenu');
+            selector.classList.remove('open');
+            menu.classList.remove('open');
             
             initializeTokenDropdown();
         }
